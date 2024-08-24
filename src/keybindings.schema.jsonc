@@ -1,0 +1,209 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "if": {
+      "properties": {
+        "command": {
+          "const": "comment-blocks.createBlock"
+        }
+      }
+    },
+    "then": {
+      "properties": {
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "justify": {
+              "description": "Where to place the selected text  Options: center, left, right.",
+              "oneOf": [
+                {
+                  "type": "string",
+                  "default": "center",
+                  "enum": [
+                    "center",
+                    "left",
+                    "right"
+                  ],
+                  "enumDescriptions": [
+                    "Center the selected text.",
+                    "Put the selected text on the left - after the start characters and leftGap.",
+                    "Put the selected text on the right."
+                  ]
+                },
+                {
+                  "type": "array",
+                  "default": ["", "center", ""],
+                  "additionalItems": false,
+                  "items": {
+                    "type": "string",
+                    "anyOf": [
+                      {
+                        "const": "center"
+                      },
+                      {
+                        "const": "left"
+                      },
+                      {
+                        "const": "right"
+                      },
+                      {
+                        "const": ""
+                      }
+                    ]
+                  }
+                }
+              ],
+              
+              "default": "center"
+            },
+            "lineLength": {
+              "description": "Number of total characters in each line.",
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              ],
+              "default": 80
+            },
+            "startText": {
+              "description": "Text to put at the start of each line.",
+              "$ref": "#/definitions/textTypes",
+              "default": "${BLOCK_COMMENT_START}"
+            },
+            "endText": {
+              "description": "Text to put at the end of each line.",
+              "$ref": "#/definitions/textTypes",
+              "default": "${BLOCK_COMMENT_END}"
+            },
+            "gapLeft": {
+              "description": "Number of spaces on the left of the selected text.",
+              "$ref": "#/definitions/gaps"
+            },
+            "gapRight": {
+              "description": "Number of spaces on the right of the selected text.",
+              "$ref": "#/definitions/gaps"
+            },
+            "padLines": {
+              "description": "Character to be used to pad around the selected text in the first line.",
+              "$ref": "#/definitions/paddings",
+              "$comment": "could be the empty string, length = 0",
+              "default": "-"
+            },
+            "numberOfLines": {
+              "description": "How many lines in the block.",
+              "$comment": "Minimum is 1",
+              "type": "integer",
+              "minimum": 1,
+              "default": 3
+            },
+            "subjects": {
+              "description": "The text, usually the selected text, that will be justified on each line.  An empty string in the array means there will be no text justified on that line.",
+              // "type": "array",
+              "$ref": "#/definitions/textTypes",
+              "oneOf": [
+                {
+              "if": {
+                "type": "array"
+              },
+              "then": {
+                "default": ["", "${selectedText}", ""],                
+                "additionalItems": true,
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "if": {
+                "type": "string"
+              },
+              "then": {
+                "default": "${selectedText}",                
+                "additionalItems": true
+              }
+            }
+            ]
+              // "additionalProperties": true,
+              // "patternProperties": {
+              //   "\\$\\{": {
+              //     // "properties": {
+              //         "${file}": {
+              //         "type": "string",
+              //         "description": " the file name as a full path"
+              //         },
+              //         "${relativeFile}": {
+              //         "type": "string",
+              //         "description": " relative file path"
+              //         }
+              //       // }
+              //   }
+              // },
+              
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "gaps": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 3
+          }
+        }
+      ],
+      "default": 3
+    },
+    "textTypes": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "additionalItems": true
+          }
+        }
+      ]
+    },
+    "paddings": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 1
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1
+          }
+        }
+      ]
+    }
+  }
+}

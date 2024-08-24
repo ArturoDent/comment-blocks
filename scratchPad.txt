@@ -1,0 +1,87 @@
+{
+        "title": "Comment Blocks",
+        "id": "comment-blocks",
+        "order": 0,
+        "properties": {
+          "commentBlocks.defaults": {
+            "markdownDescription": "Defaults to be used unless overridden in keybindings.",
+            "order": 0,
+            "type": "object",
+            "scope": "resource",
+            "properties": {
+              "lineLength": {
+                "title": "Quoosy title",
+                "type": "integer",
+                "default": 80,
+                "minimum": 0,
+                "description": "How many characters the line will have."
+              },
+              "startText": {
+                "type": "string",
+                "description": "Text to put at the beginning of each line.",
+                "default": "${BLOCK_COMMENT_START}",
+                "examples": [
+                  "LINE_COMMENT"
+                ]
+              },
+              "endText": {
+                "type": "string",
+                "description": "Text to put at the end of each line.",
+                "default": "${BLOCK_COMMENT_END}",
+                "examples": [
+                  "LINE_COMMENT"
+                ]
+              },
+              "justify": {
+                "type": "string",
+                "enum": [
+                  "left",
+                  "center",
+                  "right"
+                ],
+                "enumDescriptions": [
+                  "Place selected text on the left of the line.",
+                  "Place selected text in the center of the line.  Default.",
+                  "Place selected text on the right of the line."
+                ],
+                "default": "center",
+                "description": "Where to put the selected text within the line."
+              },
+              "gapLeft": {
+                "type": "integer",
+                "default": 3,
+                "minimum": 0,
+                "description": "Number of spaces to the left of the selected text.  Minimum = 0."
+              },
+              "gapRight": {
+                "type": "integer",
+                "default": 3,
+                "minimum": 0,
+                "description": "Number of spaces to the right of the selected text.  Minimum = 0."
+              },
+              "padFirstLine": {
+                "type": "string",
+                "default": "-",
+                "maxLength": 1,
+                "minLength": 0,
+                "description": "Character to use to pad out the first line.  Can be empty."
+              },
+              "padSecondLine": {
+                "type": "string",
+                "default": " ",
+                "maxLength": 1,
+                "minLength": 1,
+                "description": "Character to use to pad out the second line. Can be empty."
+              },
+              "padThirdLine": {
+                "type": "string",
+                "default": "-",
+                "maxLength": 1,
+                "minLength": 1,
+                "description": "Character to use to pad out the third line. Can be empty."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }

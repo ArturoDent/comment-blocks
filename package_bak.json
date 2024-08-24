@@ -1,0 +1,209 @@
+{
+  "name": "comment-blocks",
+  "displayName": "Comment Blocks",
+  "description": "Create blocks of comment headers",
+  "publisher": "ArturoDent",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArturoDent/comment-blocks"
+  },
+  "funding": {
+    "url": "https://www.buymeacoffee.com/ArturoDent"
+  },
+  "version": "0.0.1",
+  "preview": true,
+  "engines": {
+    "vscode": "^1.46.0"
+  },
+  "categories": [
+    "Other",
+    "Snippets"
+  ],
+  "keywords": [
+    "comments",
+    "blocks"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "browser": "./out/extension.js",
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "contributes": {
+    "jsonValidation": [
+      {
+        "fileMatch": "%APP_SETTINGS_HOME%/keybindings.json",
+        "url": "./src/keybindings.schema.jsonc"
+      },
+      {
+        "fileMatch": "%APP_SETTINGS_HOME%/profiles/*/keybindings.json",
+        "url": "./src/keybindings.schema.jsonc"
+      }
+    ],
+    "commands": [
+      {
+        "command": "comment-blocks.createBlock",
+        "title": "Create a comment block"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Comment Blocks",
+        "id": "CommentBlocks",
+        "order": 0,
+        "properties": {
+          "commentBlocks.selectCurrentLine": {
+            "markdownDescription": "Should the current line automatically be selected.",
+            "scope": "resource",
+            "type": "boolean",
+            "default": true,
+            "description": "Should the current line automatically be selected."
+          }
+        }
+      },
+        {
+        "title": "Comment Blocks",
+        "id": "CommentBlocks",
+        "order": 1,
+        "properties": {
+          "commentBlocks.defaultSubjects": {
+            "markdownDescription": "The default subject for each line.",
+            "type": "array",
+            "scope": "resource",
+            "additionalProperties": false,
+            "properties": {
+              "subjects": {
+                "description": "The text, usually the selected text, that will be justified on each line.  An empty string in the array means there will be no text justified on that line.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },              
+                "default": ["", "${selectedText}", ""]
+              }
+            }
+          }
+        }
+      },
+      {
+        "title": "Comment Blocks",
+        "id": "CommentBlocks",
+        "order": 2,
+        "properties": {
+          "commentBlocks.defaults": {
+            "markdownDescription": "Defaults to be used unless overridden in keybindings.",
+            "order": 2,
+            "type": "object",
+            "scope": "resource",
+            "additionalProperties": false,
+            "properties": {
+              "startText": {
+                "type": "string",
+                "description": "Text to put at the start of each line.",
+                "default": "${BLOCK_COMMENT_START}",
+                "examples": [
+                  "LINE_COMMENT"
+                ]
+              },
+              "endText": {
+                "type": "string",
+                "description": "Text to put at the end of each line.",
+                "default": "${BLOCK_COMMENT_END}",
+                "examples": [
+                  "LINE_COMMENT"
+                ]
+              },
+              "gapLeft": {
+                "type": "integer",
+                "default": 3,
+                "minimum": 0,
+                "description": "Number of spaces to the left of the selected text.  Minimum = 0."
+              },
+              "gapRight": {
+                "type": "integer",
+                "default": 3,
+                "minimum": 0,
+                "description": "Number of spaces to the right of the selected text.  Minimum = 0."
+              },
+              "padLines": {
+                "type": "string",
+                "default": "-",
+                "maxLength": 1,
+                "minLength": 0,
+                "description": "Character to be used to pad around the justigied text, isf any, in each line."
+              }
+            }
+          }
+        }
+        },
+        {
+          "title": "Comment Blocks",
+          "id": "CommentBlocks",
+          "order": 3,
+          "properties": {
+          "commentBlocks.moreDefaults": {
+            "markdownDescription": "Defaults to be used unless overridden in keybindings.",
+            "type": "object",
+            "scope": "resource",
+            "additionalProperties": false,
+            "properties": {
+              "numberOfLines": {
+                "description": "How many lines in the block.",
+                "type": "integer",
+                "minimum": 1,
+                "default": 3
+              },
+              "lineLength": {
+                "type": "integer",
+                "default": 80,
+                "minimum": 0,
+                "description": "Number of total characters in each line"
+              },
+              "justify": {
+                "type": "string",
+                "enum": [
+                  "left",
+                  "center",
+                  "right"
+                ],
+                "enumDescriptions": [
+                  "Place selected text on the left of the line.",
+                  "Place selected text in the center of the line.  Default.",
+                  "Place selected text on the right of the line."
+                ],
+                "default": "center",
+                "description": "Where to put the selected text within the line."
+              }
+            }
+          }
+        }
+        }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.1",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.11.0",
+    "@types/vscode": "^1.46.0",
+    "@typescript-eslint/eslint-plugin": "^2.30.0",
+    "@typescript-eslint/parser": "^2.30.0",
+    "eslint": "^6.8.0",
+    "glob": "^7.1.6",
+    "mocha": "^7.1.2",
+    "typescript": "^3.8.3",
+    "vscode-test": "^1.3.0"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  }
+}

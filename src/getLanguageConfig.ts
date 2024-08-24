@@ -1,0 +1,75 @@
+import { extensions } from 'vscode';
+import * as jsonc from 'jsonc-parser';
+import * as fs from 'fs';
+import * as path from 'path';
+
+
+/**
+ * Get an array of "languages", like plaintext, that don't have comment syntax
+ * @returns {string[]} 
+ */
+function _getLanguagesToSkip  () {
+    return ['code-text-binary', 'bibtex', 'log', 'Log', 'search-result', 'plaintext', 'juliamarkdown', 'scminput', 'properties', 'csv', 'tsv', 'excel'];
+}
+
+/**
+ * From the language configuration for the current file get the value of config argument
+ * Usage: await languageConfigs.get(documentLanguageId, 'comments');
+ *
+ * @param {string} langID - the languageID of the desired language configuration
+ * @param {string} config - the language configuration to get, e.g., 'comments.lineComment' or 'autoClosingPairs'
+ *
+ * @returns {Promise<any>} - string or array or null if can't be found
+ */
+export async function get (langID: string, config: string) {
+  
+  if (_getLanguagesToSkip().includes(langID)) return null;
+  else if (langID.startsWith('csv')) return null;
+  
+	let configArg;
+
+	if (config && config.includes('.')) configArg = config.split('.');
+	else configArg = config;
+
+	let desiredConfig = null;  // return null default if can't be found
+
+	var langConfigFilePath = null;
+
+	for await (const extension of extensions.all) {
+		if (
+			extension.packageJSON.contributes &&
+			extension.packageJSON.contributes.languages
+		) {
+			// Find language data from "packageJSON.contributes.languages" for the langID argument
+			// don't filter if you want them all
+			const packageLangData = extension.packageJSON.contributes.languages.find(
+				(_packageLangData: any) => (_packageLangData.id === langID)
+			);
+			// If found, get the absolute config file path
+			if (!!packageLangData && packageLangData.configuration) {
+				langConfigFilePath = path.join(
+					extension.extensionPath,
+					packageLangData.configuration
+				);
+				break;
+			}
+		}
+	}
+
+	if (!!langConfigFilePath && fs.existsSync(langConfigFilePath)) {
+
+		// the whole language config will be returned if config arg was the empty string ''
+    desiredConfig = await jsonc.parse(fs.readFileSync(langConfigFilePath).toString());
+
+		if (Array.isArray(configArg)) {
+
+			for (let index = 0; index < configArg.length; index++) {
+				desiredConfig = desiredConfig[configArg[index] ];
+			}
+			return desiredConfig;
+		}
+		else if (config) return await jsonc.parse(fs.readFileSync(langConfigFilePath).toString())[config];
+		else return desiredConfig;
+	}
+	else return null;
+};

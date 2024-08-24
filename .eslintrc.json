@@ -2,8 +2,12 @@
     "root": true,
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "ecmaVersion": 6,
+        "ecmaVersion": 2024,
         "sourceType": "module"
+    },
+    "env": {
+      "browser": true,
+      "node": true
     },
     "plugins": [
         "@typescript-eslint"
@@ -11,9 +15,14 @@
     "rules": {
         "@typescript-eslint/class-name-casing": "warn",
         "@typescript-eslint/semi": "warn",
-        "curly": "warn",
-        "eqeqeq": "warn",
-        "no-throw-literal": "warn",
-        "semi": "off"
+
+        "no-const-assign": "warn",
+        "no-this-before-super": "warn",
+        // "no-undef": "warn",
+        "no-unreachable": "warn",
+        // "no-unused-vars": "warn",
+        "@typescript-eslint/no-unused-vars": "warn",
+        "constructor-super": "warn",
+        "valid-typeof": "warn"
     }
 }
