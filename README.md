@@ -2,57 +2,24 @@
 
 Create comment blocks like
 
-```jsonc
-// in keybindings.json
-
-```
-
-would result in:
-
 ```javascript
-// in your file
+/*
+ *     test2.js : funcCC
+ *     Modification Date: 2024:08:24  20:08
+*/
 ```
 
 ---------------------------
 
-```jsonc
-// in keybindings.json
-
-{
-  "key": "alt+b",                               // whatever keybinding you want
-  "command": "comment-blocks.createBlock",
-  "args": {
-    
-    "justify": "left",
-    "lineLength": [80,80,3],                    // line 3 is only 3 characters long
-    "gapLeft": [0,10,0],                        // left gap only on second line
-    "gapRight": 0,
-    
-    "startText": [
-      "${BLOCK_COMMENT_START}",
-      " * ",                                    // middle line starts with a ' *'
-      ""
-    ],
-    
-    "endText": ["", "", "${BLOCK_COMMENT_END}"],  // endText only on last line
-
-    "subjects": [
-      "",
-      "${relativeFile} : ${nextFunction}",    // resolve the file and then ask the user for input
-      ""
-    ],
-
-    "padLines": ""                            // don't pad any of the lines
-  }
-  // "when": "editorTextFocus && !editorReadonly && editorLangId == typescript"   // to restrict to a given language
-}
+```javascript
+////////////////////////////////////////////////////////////////////////////////
+//                             some_function_next                             //
+////////////////////////////////////////////////////////////////////////////////
 ```
 
-would result in:
+---------------------
 
 ```javascript
-// in your test2.js file
-
 /*
  *            test2.js : funcCC
  */
@@ -61,11 +28,23 @@ function funcCC() {
 }
 ```
 
+--------------------
+
+```javascript
+////////////////////////////////////////////////////////////
+//////////////////////// First Line ////////////////////////
+///////////////////////  Second Line ///////////////////////
+//////////////////////// Third Line ////////////////////////
+////////////////////////////////////////////////////////////
+```
+
+These four examples are explained below.
+
 ## Features
 
 There are many options and variables that can be used in creating these blocks.
 
-## Options
+### Options
 
 |  Option           |  Type                | Default                       |                                         |
 |-------------------|----------------------|-------------------------------|-----------------------------------------|
@@ -77,8 +56,21 @@ There are many options and variables that can be used in creating these blocks.
 | gapLeft           | integer or integer[] | 3                             | Blank space to the left of the subject  |
 | gapRight          | integer or integer[] | 3                             | Blank space to the right of the subject |
 | padLines          | string or string[]   | `"-"`  of length 1            | Character to be used to pad each line   |
-| numberOfLines     | integer              | 3                             | How many lines is the comment block     |
+|                   |                      |                               |                                         |
 | subjects          | string[]             | `["", "${selectedText}", ""]` | The subject for each line               |
+
+* The number of lines of the comment block is determined by how many `subjects` you have.
+
+```jsonc
+"subjects": "${selectedText}"                     // comment block is 1 line
+"subjects": ["${selectedText}"]                   // comment block is 1 line
+
+"subjects": ["", "${selectedText}", ""}           // // comment block is 3 lines
+"subjects": ["${file}", "", "${selectedText}", "", "${nextFunction}"}  // 5 lines
+
+// a subject of "" (with no space) creates a spacer line with no subject
+
+```
 
 These options all have default values as indicated above.  But those defaults can be modified in two different ways:
 
@@ -120,9 +112,8 @@ Whatever defaults you set in this setting can be overridden by a keybinding that
     // "endText": "",                          // so nothing is added at end!!  // works
 
     "padLines": ["-",  " ", "-"],              // pad middle line with spaces
-    // "numberOfLines": 3,                     // the default, so unnecessary
     
-    "subjects": [
+    "subjects": [                              // this comment block will be 3 lines
       "\\U${previousFunction}",                // \\U = uppercase the previous function name
       "\\L${selectedText}",                    // \\L = lowercase the selected text
       "\\u${nextFunction}"                     // \\u capitalize first letter next function name
@@ -148,7 +139,7 @@ String options like `startText`, `endText`, `padLines` and `subjects` can be a s
 
 You can make an option like `"startText": "${LINE_COMMENT}"` or `"startText": ["${LINE_COMMENT}"]` - they are the same.  In all cases, if the array length is greater than 1, the options will have their values extended so both of the above become `"startText": ["${LINE_COMMENT}", "${LINE_COMMENT}", "${LINE_COMMENT}"]`.  This automatically happens, you don't need to do it.  
 
-Let's say the `numberOfLines` is 3 and you have an option like `"justify": ["left", "center"]`.  The last array entry will be repeated, so it becomes `"justify": ["left", "center", "center"]`.  This is what allows `"justify": "center"` or `"justify": ["center"]` to work to center **all** the lines.
+Let's say the number of `subjects` you have is 3 and you have an option like `"justify": ["left", "center"]`.  The last array entry will be repeated, so it becomes `"justify": ["left", "center", "center"]`.  This is what allows `"justify": "center"` or `"justify": ["center"]` to work to center **all** the lines.
 
 Any of the variables listed below can be used, including combinations of them.  A typical `subject` option would be:
 
@@ -158,7 +149,7 @@ Any of the variables listed below can be used, including combinations of them.  
 
 `\\U`, `\\u`, `\\L` and `\\l` can be used in front of a variable to change its casing.  Example: `\\U${selectedText}`.
 
-## Variables
+### Variables
 
 |                            |  Snippet variable equivalent  |  |
 |----------------------------|-------------------------------|--|
@@ -235,9 +226,9 @@ One reason why you might want to occaisonally use the snippet form of a variable
 
 this would get and keep only that part of the selected text after a `-`.  You can do any snippet transform like this that you could in a regular snippet.  Just be aware that the actual transform is done by vscode upon insertion of the text, thus this extension cannot account for its result or length and you would have to adjust for the padding yourself afterwards.
 
-### `${getInput}`
+#### `${getInput}`
 
-You can use this "variable" on any of the text (`string` or `string[]`) options as often as you like.  This would open 3 input boxes in a row asking for the input for that option:
+You can use this "variable" on any of the options as often as you like.  The below would open 3 input boxes in a row asking for the input for that option:
 
 ```jsonc
 // part of a comment-blocks.createBlock keybinding in your keybindings.json
@@ -257,6 +248,259 @@ You can use this "variable" on any of the text (`string` or `string[]`) options 
 ]
 ```
 
+#### `${selectedText}` and `${CLIPBOARD}`
+
+Both of these variables can consist of either a single line or word or they could contain multiple lines.  These must be special handling of multiline content.  If you have a keybinding like
+
+```jsonc
+{
+  "key": "alt+b",                        // whatever keybinding you want
+  "command": "comment-blocks.createBlock",
+  "args": {
+    
+                             // 5 items, which matches the "subjects" length
+    "justify": ["center", "center", "left", "center", "center"],
+    
+    "gapLeft": 5,
+    "gapRight": 5,
+    
+    "subjects": [
+      "${relativeFile}",
+      "",
+      "${selectedText}",    // or "${CLIPBOARD}"  // note this is the third item
+      "",
+      "${previousFunction}"
+    ],
+    "padLines": [" "]
+  }
+}
+```
+
+you could produce this (where the code was selected)
+
+```javascript
+/*                                  test2.js                                  */
+/*                                                                            */
+/*     let a = 12;                                                            */
+/*     let b = [0, 1, 3, 4];                                                  */
+/*                                                                            */
+/*     function funcCC() {                                                    */
+/*       howdy();                                                             */
+/*     }                                                                      */
+/*                                                                            */
+/*                                   funcBB                                   */
+```
+
+* IMPORTANT: `${selectedText}` was the third item in `subjects`.  Its entire content was left-justified because the **third** `justify` value was `"left"`.
+
+* Each line of the selected text is put on its own line but all of it is left-justified.  In this case, any option, like `justify` or `padLines` that you want to be applied to the `${selectedText}` should be in the same array postition.  So if you wanted a different padding character for the selected text lines, you could use something like this:
+
+```jsonc
+"padLines": [" ", " ", "-"]
+```
+
+Note that `"-"` is in the third position.  Also note that since there are more `subjects` lines, in this case they would also get the last designated padding value `"-"`.  If you wanted the following lines to all have other padding, use `"padLines": [" ", " ", "-", " "]` for example.
+
+The same is true for `${CLIPBOARD}` - put any specific option value in the same position or positions where `${CLIPBOARD}` appears in the `subjects`.  You can use multiples of these like:
+
+```jsonc
+{
+  "key": "alt+b",                        // whatever keybinding you want
+  "command": "comment-blocks.createBlock",
+  "args": {
+                             // 5 items, which matches the "subjects" length
+    "justify": ["left", "center", "left"],
+    
+    "gapLeft": 5,
+    "gapRight": 5,
+    
+    "subjects": [
+      "${CLIPBOARD}",       // first item
+      "${getInput}",
+      "${selectedText}",    // the third item
+      // more lines with "${CLIPBOARD}" or "${selectedText}"
+    ],
+    "padLines": [" "]
+  }
+}
+```
+
+Here the `${getInput}` content would be centered, and all the content of the clipboard and the current selection would be left-justified.
+
+### More examples
+
+```jsonc
+{
+  "key": "alt+b",
+  "command": "comment-blocks.createBlock",
+  "args": {
+    
+    "justify": "center",           // center is the default, so this is unnecessary
+        
+    "lineLength": 80,
+    "padLines": ["/", " ", "/"],   // middle line is padded with spaces
+    
+    "startText": "${LINE_COMMENT}",    
+    "endText": "${LINE_COMMENT}",  
+      
+    "subjects": [
+      "", 
+      "${nextFunction}", 
+      ""
+    ]
+  }
+}
+```
+
+produces
+
+```javascript
+////////////////////////////////////////////////////////////////////////////////
+//                             some_function_next                             //
+////////////////////////////////////////////////////////////////////////////////
+```
+
+-------------------
+
+```jsonc
+// in keybindings.json
+{
+  "key": "alt+b",
+  "command": "comment-blocks.createBlock",
+  "args": {
+    
+    "justify": ["left"],
+                              // This will NOT truncate the line content, only padding after the content 
+    "lineLength": 0,          // !! Prevents padding after the content to the end of the line
+    "gapLeft": [0, 5, 5, 0],
+    "padLines": [" "],
+    
+    "startText": [
+      "${BLOCK_COMMENT_START}",
+      " *",
+      " *",
+      ""
+    ],
+    
+    "endText": ["", "", "", " ${BLOCK_COMMENT_END}"],    
+    "subjects": [
+      "", 
+      "${relativeFile} : ${nextFunction}", 
+      "Modification Date: ${CURRENT_YEAR}:${CURRENT_MONTH}:${CURRENT_DATE}  ${CURRENT_HOUR}:${CURRENT_MINUTE}",
+      ""
+    ]
+  }
+},
+```
+
+produces
+
+```javascript
+/*
+ *     test2.js : funcCC
+ *     Modification Date: 2024:08:24  20:08
+*/
+```
+
+* Using `"lineLength": 0` will be overridden by the actual content.  So if you **DO NOT** want padding after the content (like spaces up to column 80, for example) just a `lineLength` of `0` for those lines.
+
+----------------
+
+```jsonc
+// in keybindings.json
+
+{
+  "key": "alt+b",                               // whatever keybinding you want
+  "command": "comment-blocks.createBlock",
+  "args": {
+    
+    "justify": "left",
+    "lineLength": [80,80,3],                    // line 3 is only 3 characters long
+    "gapLeft": [0,10,0],                        // left gap only on second line
+    "gapRight": 0,
+    
+    "startText": [
+      "${BLOCK_COMMENT_START}",
+      " * ",                                    // middle line starts with a ' *'
+      ""
+    ],
+    
+    "endText": ["", "", "${BLOCK_COMMENT_END}"],  // endText only on last line
+
+    "subjects": [
+      "",
+      "${relativeFile} : ${nextFunction}",    // resolve the file and then ask the user for input
+      ""
+    ],
+
+    "padLines": ""                            // this will be converted to "padLines": " " (a space)
+  }
+  // "when": "editorTextFocus && !editorReadonly && editorLangId == typescript"   // to restrict to a given language
+}
+```
+
+produces
+
+```javascript
+/*
+ *            test2.js : funcCC
+ */
+function funcCC() {
+  howdy();
+}
+```
+
+* As noted above `"padLines": ""` (with no space) will be converted to `"padLines": " "` (with a space), otherwise your chosen `lineLength` would have no meaning - you can't pad out to some `lineLenght` with nothing.  Likewise, if you had `"padLines": "${getInput}"` and you entered nothing into the input box, it would be converted to `"padLines": " "` (with a space).
+
+---------------------
+
+```jsonc
+{
+  "key": "alt+b",
+  "command": "comment-blocks.createBlock",
+  "args": {
+    
+    // "justify": "center",  // center is the default
+    
+    "lineLength": 60,
+    "padLines": ["/", "/", "/"],
+    "gapLeft": 1,
+    "gapRight": 1,
+    
+    "startText": "${LINE_COMMENT}",    
+    "endText": "${LINE_COMMENT}",  
+      
+    "subjects": [
+      "", 
+      "${selectedText}",   // or use ${getInput} to ask for text to wrap
+      ""
+    ]
+  }
+}
+```
+
+produces
+
+```javascript
+////////////////////////////////////////////////////////////
+//////////////////////// First Line ////////////////////////
+///////////////////////  Second Line ///////////////////////
+//////////////////////// Third Line ////////////////////////
+////////////////////////////////////////////////////////////
+```
+
+after selecting the below and triggering the keybinding
+
+```plaintext
+First Line
+Second Line
+Third Line
+```
+
 ## Known Issues
+
+Only the primary selection is used.  That is the first one you made, not necessarily the one nearer the top of the file.
+
+Right-justifying will put the lines flush right, as expected.  But this loses the effect of leading spaces or tabs.  So you probably don't want to right-justify multiple lines of code with indentation.
 
 ## Release Notes

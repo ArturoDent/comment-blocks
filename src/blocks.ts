@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import type { CommentBlockSettings } from './config';
+import type { CommentBlockSettings } from './configs';
 import * as resolve from './resolveVariables';
+// import * as utilties from './utilities';
 
 type CommentBlockSettings2 = {
   lineLength: number | Array<number>,
@@ -10,7 +11,6 @@ type CommentBlockSettings2 = {
   gapLeft: number | Array<number>,
   gapRight: number | Array<number>,
   padLines: string | Array<string>,
-  numberOfLines: number,
   subjects: Array<string>,
 };
 
@@ -25,58 +25,64 @@ type CommentBlockSettings2 = {
  * @param {number} matchIndex
  * @returns {Promise<vscode.SnippetString>}
  **/
-export async function build(editor: vscode.TextEditor , options: CommentBlockSettings, selection: vscode.Selection, matchIndex: number): Promise<vscode.SnippetString> {
+export async function build(editor: vscode.TextEditor, options: CommentBlockSettings, selection: vscode.Selection, matchIndex: number): Promise<vscode.SnippetString> {
 
-  // may be a multiline ${selectedText} used in the subjects[]
-  if (!editor.selection.isSingleLine) options = await _expandSelection(editor, options);
+  let multiLineText = false;
   
-  let multiLineClipText = false;
+  // may be a multiline ${selectedText} or ${CLIPBOARD} used in the subjects[]
   
-  // may be a multiline ${CLIPBOARD} used in the subjects[]
-  if (options.subjects.find((el: string) => el === '${CLIPBOARD}')) ({ options, multiLineClipText } = await _expandClipboard(options));
+  if (options.subjects.includes('${selectedText}')) ({ options, multiLineText } = await _expandMultilines(editor, options, "${selectedText}"));
   
-  options.numberOfLines = options.subjects.length;
+  if (options.subjects.includes('${CLIPBOARD}')) ({ options, multiLineText } = await _expandMultilines(editor, options, "${CLIPBOARD}"));
   
-  // remove selectCurrentLine from options
-  delete options?.selectCurrentLine;  
+  let numberOfLines = options.subjects.length;  // reset numberOfLines if multilines above
   
   // set all array settings.lengths to numberOfLines and/or fill if necessary
-  const { lineLength, startText, endText, justify, gapLeft, gapRight, padLines, subjects } = await _setLengthAndFill(options);
-  const numberOfLines = Math.floor(options.numberOfLines);
+  // this updates options as well
+  await _setLengthAndFill(options, numberOfLines);
   
   let str = '';
-  let startText2 = '';
-  let endText2 = '';
-  let subject = '';
-  
-  const specialVariable = new RegExp('\\$[\\{\\d]');
+  const specialVariable = new RegExp('\\$\\{.*\\}');
   
   for (let line = 0; line < numberOfLines; line++) {
     
-    let gapLeft2 = Math.floor((gapLeft as number[])[line]);
-    let gapRight2 = Math.floor((gapRight as number[])[line]);
-    let lineLength2 = Math.floor((lineLength as number[])[line]);
+    // loop through all options to resolveVariables on the line
+    for await (let option of Object.entries(options)) {
+      
+      if (option[0] === 'selectCurrentLine') continue;
+      // @ts-ignore
+      if (option[1][line].toString().search(specialVariable) !== -1) // typeof string
+      // @ts-ignore
+      options[option[0]][line] = await resolve.resolveVariables(option[1][line], selection, matchIndex, line, option[0]);
+    };
     
-    // add line to args so that lineIndex/Number will move with the comment block
-    if (startText[line].search(specialVariable) !== -1)
-      startText2 = await resolve.resolveVariables(startText[line], selection, matchIndex, line, "startText");
-    else startText2 = startText[line];
+    // set these variable names to each option[line] value
+    // note the leading ',' - serves as an empty placeholder for selectCurrentLine
+    let [ , lineLength, startText, endText, justify, gapLeft, gapRight, padLine, subject ] =
+        Object.entries(options).map((option) => {
+          if (option[0] !== 'selectCurrentLine') return (option[1] as any)[line];
+        });
     
-    if (endText[line].search(specialVariable) !== -1)
-      endText2 = await resolve.resolveVariables(endText[line], selection, matchIndex, line, "endText");
-    else endText2 = endText[line];
-
-    if (subjects[line].search(specialVariable) !== -1)
-      subject = await resolve.resolveVariables(subjects[line], selection, matchIndex, line, "subjects");
-    else subject = subjects[line];
+    gapLeft = Math.floor(gapLeft);
+    gapRight = Math.floor(gapRight);
+    lineLength = Math.floor(lineLength);
     
-    // don't trim if multiline selection or clipboard
-    if (selection.isSingleLine && !multiLineClipText) subject = subject.trim();  //  don't do this if multiline selection
-    let subjectLength = subject.length;    
+    // necessary because escaping out of a getInput delivers "", and you get a length from that?
+    startText = startText || "";
+    endText = endText || "";
+    padLine = padLine || "";
+    justify = justify || "";    
+    
+    let subjectLength = 0;
+    // don't trim if multiline selection or clipBoard in subjects
+    if (subject && !multiLineText) subject = subject?.trim();  // don't trim if setting subjects = longest subject + spaces
+      
+    if (subject) subjectLength = subject?.length;
+    else subject = '';
 
     if (subjectLength === 0) {            // ignore gapLeft/Right if no subject on that line
-      gapLeft2 = 0;
-      gapRight2 = 0;
+      gapLeft = 0;
+      gapRight = 0;
     }
     
     // use below if want the line lengths to match when there is a tabStop(s) or not
@@ -89,129 +95,134 @@ export async function build(editor: vscode.TextEditor , options: CommentBlockSet
     // }
     
     // to align the ends of the padLeft fillers by adding a spacer to gapLeft instead
-    const rawPadLeftLength = lineLength2 / 2 - subjectLength / 2 - gapLeft2 - startText2.length;
+    const rawPadLeftLength = lineLength / 2 - subjectLength / 2 - gapLeft - startText.length;
     
     // TODO: what if gapLeft is 0?  && (gapLeft as number[])[line] !== 0
-    if (!Number.isInteger(rawPadLeftLength) && justify[line] !== "left") gapLeft2 += 1;   // only do this if multiple lines?
+    // if (!Number.isInteger(rawPadLeftLength) && justify !== "left") gapLeft += 1;   // only do this if multiple lines?
+    if (!Number.isInteger(rawPadLeftLength) && justify === "center") gapLeft += 1;   // only do this if multiple lines?
+    if (gapLeft >= 2 &&!Number.isInteger(rawPadLeftLength) && justify === "right") gapLeft -= 1;   // only do this if multiple lines?
+    
 
     let padLeftLength: number;
     let padRightLength: number;
     
-    if (justify[line] === 'center' || justify[line] === '') {
+    if (justify === 'center' || justify === '') {
       // to put the extra filler (if length is not an integer) before the gap, using ceil and floor      
-      padLeftLength = Math.ceil(lineLength2/2 - subjectLength/2 - gapLeft2 - startText2.length);
-      padRightLength = Math.floor(lineLength2/2 - subjectLength/2 - gapRight2 - endText2.length);
+      padLeftLength = Math.ceil(lineLength / 2 - subjectLength / 2 - gapLeft - startText.length);
+      padRightLength = Math.floor(lineLength / 2 - subjectLength / 2 - gapRight - endText.length);
     }
 
-    else if (justify[line] === 'left') {
+    else if (justify === 'left') {
       padLeftLength = 0;       // so ignored by justify LEFT
-      padRightLength = Math.floor(lineLength2 - startText2.length - gapLeft2 - subjectLength  - gapRight2 - endText2.length);
+      padRightLength = Math.floor(lineLength - startText.length - gapLeft - subjectLength  - gapRight - endText.length);
     }
 
-    else {  // if (justify[line] === 'right')
-      padLeftLength = Math.ceil(lineLength2 - startText2.length - gapLeft2 - subjectLength - gapRight2 - endText2.length);
+    else {  // if (justify === 'right')  // TODO: so default ??
+      padLeftLength = Math.ceil(lineLength - startText.length - gapLeft - subjectLength - gapRight - endText.length);
       padRightLength = 0;      // so ignored by justify RIGHT
     }
     
-    str += startText2.padEnd(padLeftLength + startText2.length, padLines[line])
-                      .padEnd(padLeftLength + gapLeft2 + startText2.length, ' ');
+    str += startText.padEnd(padLeftLength + startText.length, padLine || ' ')
+                      .padEnd(padLeftLength + gapLeft + startText.length, ' ');
     
-    str += subject.padEnd(subjectLength + gapRight2, ' ')
-                  .padEnd(subjectLength + gapRight2 + padRightLength, padLines[line]);
+    str += subject.padEnd(subjectLength + gapRight, ' ')
+                  .padEnd(subjectLength + gapRight + padRightLength, padLine || ' ');
   
-    if (line === numberOfLines - 1) str += `${endText2}`;  // no newline on last line
-    else str += `${endText2}\n`;
+    if (line === numberOfLines - 1) str += `${endText}`;  // no newline on last line
+    else str += `${endText}\n`;
   }
   return new vscode.SnippetString(str);
 }
 
+
 /**
- *
- *
- * @param {string[]} subjects
+ * Expand 'subjects' for each line with ${CLIPBOARD} or ${selectedText}
+ * @param {vscode.TextEditor} editor
+ * @param {CommentBlockSettings} options
+ * @param {string} caller - ${selectedText} or ${CLIPBOARD}
  **/
-// async function _expandSelection(options: CommentBlockSettings, subjects: string[]): Promise<string[]> {
-async function _expandSelection(editor: vscode.TextEditor, options: CommentBlockSettings): Promise<CommentBlockSettings> {
+async function _expandMultilines(editor: vscode.TextEditor, options: CommentBlockSettings, caller: string): Promise<{ options: CommentBlockSettings, multiLineText: boolean }> {
   
-  // const editor = vscode.window?.activeTextEditor;
-  // if (!editor) return subjects;
-  if (!editor) return options;
+  let multiLineText = false;
+  let splitText: string[] = [];
   
-  let splitSelection: string[] = [];
-  splitSelection = editor.document.getText(editor.selection).split(/\r?\n/);
-      
-  // get the line with ${selectedText}
-  const insertAt = options.subjects.findIndex((el: string) => el === '${selectedText}');
+  // let newArr: string[] = [];
+  let newArr: any[] = [];
+  let inserted = 0;  // need to add the number of lines inserted to the index
   
-  // "subjects": ["${file}", "", "${selectedText}", "", "${nextFunction}"] 
-  // if there is no "${selectedText}": do nothing, the selection will be replaced by the comment block    
-  if (insertAt !== -1) {
-    options.subjects.splice(insertAt, 1, ...splitSelection);
-    
-    // const elementsToInsert = new Array(splitSelection.length).fill(options.justify[insertAt], 0);
-    // options.justify.splice(insertAt, 1, ...elementsToInsert);
-    // const { lineLength, startText, endText, justify, gapLeft, gapRight, padLines, subjects } = await _expandOptions(options);
-    options = await _expandOptions(options, splitSelection.length, insertAt);
+  if (caller === '${CLIPBOARD}') {
+    const clipText = await vscode.env.clipboard.readText();
+    splitText = clipText.split(/\r?\n/);
   }
+  else if (caller === '${selectedText}') {
+    splitText = editor.document.getText(editor.selection).split(/\r?\n/);    
+  }
+  
+  let index = 0;   // so index = the line?
+  
+  for await (let subject of Object.values(options.subjects)) {
     
-  // return subjects;
-  return options;
+    if (subject.includes(caller)) {
+      
+      newArr.push(...splitText);
+      
+      options = _expandOptions(options, splitText.length, index + inserted);
+      
+      inserted += splitText.length - 1;
+      multiLineText = true;
+    }
+    else newArr.push(subject);
+    index++;
+  };
+  
+  options.subjects = newArr;
+  return { options, multiLineText };
 }
 
-async function _expandOptions(options: CommentBlockSettings, selectionLength: number, insertAt: number ) {
+
+
+/**
+ * Expand options to use ${selectedText} or ${CLIPBOARD}.
+ * Fill at the same array indices as above to equal the extra lines.
+ *
+ * @param {CommentBlockSettings} options
+ * @param {number} selectionLength - selection or clipboard length
+ * @param {number} insertAt
+ * @returns
+ **/
+function _expandOptions(options: CommentBlockSettings, selectionLength: number, insertAt: number ) {
   
-  // for (let {option, value) in options) {
-  // Object.entries(options).for await (const element of object) {
+  // for await (const option of Object.entries(options)) {
+  for  (const option of Object.entries(options)) {
     
-  // }
-    
-  for await (const option of Object.entries(options)) {
+    let elementsToInsert;
     
     if (option[0] === 'subjects' || option[0] === 'selectCurrentLine') continue;
-  
-    // @ts-ignore
-    // if (typeof option[1] === 'string' || typeof option[1] === 'number') option[1] = [option[1]];
-    if (typeof option[1] !== 'object') option[1] = [option[1]];
-    if ( (option[1] as (string|number)[]).length <= insertAt) continue;
     
+    let [ key , values2 ] = option;
+    let values;
     
-    // @ts-ignore
-    const elementsToInsert = new Array(selectionLength).fill(option[1][insertAt], 0);
-    (option[1] as (string|number)[]).splice(insertAt, 1, ...elementsToInsert);
+    if (typeof values2 !== 'object') values = [values2];
+    else values = values2;
     
-    // @ts-ignore
-    // options[option[0]] = option[1];
+    if ( values.length <= insertAt) continue;
+    
+    // [ "${getInput}", "${default}", "${default}"]
+    
+    if (values[insertAt] === "${getInput}") {
+      elementsToInsert = new Array(selectionLength-1).fill("${default}", 0);
+      values.splice(insertAt+1, 0, ...elementsToInsert);
+    }
+    
+    else {
+      elementsToInsert = new Array(selectionLength).fill(values[insertAt], 0);
+      values.splice(insertAt, 1, ...elementsToInsert);
+    }
+    
+    Object.assign(options, new Object({ [key]: values }));
   }
   
   return options;
-}
-
-/**
- *
- *
- * @param {CommentBlockSettings} option
- **/
-async function _expandClipboard(options: CommentBlockSettings): Promise<{ options: CommentBlockSettings, multiLineClipText: boolean }> {
-  
-  const insertAt = options.subjects.findIndex((el: string) => el === '${CLIPBOARD}');
-  let splitClipboard: string[] = [];
-  let multiLineClipText = false;
-  
-  if (insertAt !== -1) {
-    
-    const clipText = await vscode.env.clipboard.readText();  
-    splitClipboard = clipText.split(/\r?\n/);
-    
-    if (splitClipboard.length > 1) {
-      options.subjects.splice(insertAt, 1, ...splitClipboard);
-      multiLineClipText = true;
-      
-      options = await _expandOptions(options, splitClipboard.length, insertAt);
-    }
-  }
-  
-  // return { subjects2: subjects, multiLineClipText };
-  return { options, multiLineClipText };
 }
 
 
@@ -222,21 +233,21 @@ async function _expandClipboard(options: CommentBlockSettings): Promise<{ option
  * Example: ["left", "center"] => ["left", "center", "center"]
  * 
  * @param {CommentBlockSettings} options
+ * @param {number} numberOfLines 
  * @returns options
  **/
-async function _setLengthAndFill(options: CommentBlockSettings2): Promise<CommentBlockSettings> {
+async function _setLengthAndFill(options: CommentBlockSettings, numberOfLines: number): Promise<CommentBlockSettings> {
   
-  const maxLength: number = Math.floor(options.numberOfLines);
+  const maxLength: number = Math.floor(numberOfLines);
   
   for (let [option, value] of Object.entries(options)) { 
     
-    if (option === 'numberOfLines') continue;
-    // else if (option === 'selectCurrentLine') continue;  
+    if (option === 'selectCurrentLine') continue;
     
     let newValue: Array<string | number>;
     
     if (!Array.isArray(value)) {
-      newValue = Array.of(value);
+      newValue = Array.of(value as (string|number));
     }
     else newValue = value;
     
@@ -246,10 +257,9 @@ async function _setLengthAndFill(options: CommentBlockSettings2): Promise<Commen
       
       if (option === 'subjects') newValue.fill("", oldLength);
       else newValue.fill(newValue[oldLength - 1], oldLength);
+    }
       
-      // const key = option as keyof typeof options;
-      (options as any)[option] = newValue;
-    }    
+    (options as any)[option] = newValue;
   }
   
   return options;

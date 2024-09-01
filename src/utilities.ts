@@ -1,23 +1,99 @@
 import * as vscode from 'vscode';
 import * as languageConfigs from './getLanguageConfig';
+import { getPlaceHolders, getPrompts } from './optionProperties';
+import * as variables from './variables';
 
 
 /**
- * Trigger a QuickInput to get endText/startText/subjects from the user.
+ * Get the placeHolder for the caller.
  * @param {string} caller  - which option (e.g., "subjects", "gapLeft") is being resolved
- * @param {number} line  - which line of the block comment
  * @returns {Promise<string>}
  */
-export async function getInput (caller: string, line: number) {
+export async function getInput (caller: string, line: number): Promise<string> {
   
-  const title = caller;
-  // let prompt = "";
-  let placeHolder = `Enter text, number or array for the ${caller} option of line ${line}.`;
+  // might be multiple lines, but this does indicate the line the user set
+  // let placeHolder = getPlaceHolders(caller) + ` for line ${line+1}.`;
   
-  const options = { title, placeHolder };
-  // TODO: deal with arrays in the input
-  return await vscode.window.showInputBox(options);
+  const options = {
+    title: caller + `, line ${line+1}.`,
+    placeHolder: getPlaceHolders(caller),
+    prompt: getPrompts(caller),
+    validateInput:  
+      (text: string) => handleInput(text, caller) };
+  
+  const input = await vscode.window.showInputBox(options);
+  if (input) return input;
+  else return "";
 };
+
+/**
+ *
+ *
+ * @export
+ * @param {string} caller
+ * @param {string | undefined} input
+ * @returns 
+ **/
+// export async function handleInput(caller: string, input: string|undefined) {
+export async function handleInput(input: string, caller: string,) {
+  
+  let message: string | undefined = input;
+  // undefined means the input is good
+  
+  // escape from input = undefined, enter (while empty) = ''
+  // could return the defaults instead of an empty string
+  // including for numberCallers
+  if (!input) return "";
+  
+  // check that string inputs are correct for the stringCallers and 
+  // parseInt('xy3') are correct, minimum of 0, integers
+  
+  let numberCallers = ["lineLength", "gapLeft", "gapRight"];
+  
+  if (numberCallers.includes(caller)) {
+    let minimum = 0;
+    if (caller === 'lineLength') minimum = 10;
+    
+    if (parseInt(input) >= minimum) message = undefined;
+    else message = `Must be an integer greater than or equal to ${minimum}.`;
+  }
+  
+  // let stringCallers = ["startText", "endText", "justify", "padLines", "subjects"];
+  
+  else if (caller === 'justify') {
+    if (input.match(/^(left|center|right)$/m)) message = undefined;
+    else message = 'Must be left or right or center.';   // the default
+  }
+  
+  // can be only one character, take the first
+  else if (caller === "padLines") {
+    if (input.length > 1) message = 'Can only be 1 character long.';
+    else message = undefined;
+  }
+    
+  else {     // make work for g flag and all matches, could paste multiple variables or ${file}-${file2} would pass
+    const matches = input.match(/\$\{.*?\}/g);   // Test this is case-sensitive
+    if (matches) {
+      // loop through all matches to see if any fail
+      const vars = variables.getPathVariables().concat(variables.getSnippetVariables()).concat(variables.getExtensionDefinedVariables());
+ 
+      // make this a regex search/match so ${getTextLine:2} works when used in getInput
+      
+      const failed = matches.find(aMatch => {
+        if (aMatch.startsWith("${getTextLine:")) {
+          return !aMatch.match(/\$\{getTextLine:\d+\}/);
+        }
+        return !vars.includes(aMatch);
+      });
+      
+      if (failed) message = `${failed} is not one of the variables`;
+      else message = undefined;
+      }
+      else message = undefined;
+    }
+    
+  return message;
+}
 
 
 /**

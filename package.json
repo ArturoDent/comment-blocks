@@ -54,32 +54,22 @@
       {
         "title": "Comment Blocks",
         "id": "CommentBlocks",
-        "order": 1,
         "properties": {
           "commentBlocks.defaults": {
             "markdownDescription": "Defaults to be used unless overridden in keybindings.",
-            "order": 0,
             "type": "object",
             "scope": "resource",
             "additionalProperties": false,
             "properties": {
               "selectCurrentLine": {
                 "order": 0,
-                "markdownDescription": "Should the current line automatically be selected.",
+                "description": "Should the current line automatically be selected.",
                 "scope": "resource",
                 "type": "boolean",
-                "default": true,
-                "description": "Should the current line automatically be selected."
-              },
-              "numberOfLines": {
-                "order": 1,
-                "description": "How many lines in the block.",
-                "type": "integer",
-                "minimum": 1,
-                "default": 3
+                "default": true
               },
               "lineLength": {
-                "order": 2,
+                "order": 1,
                 "description": "Number of total characters in each line.",
                 "oneOf": [
                   {
@@ -87,44 +77,48 @@
                     "minimum": 0
                   },
                   {
+                    "type": "string",
+                    "const": "${getInput}"
+                  },
+                  {
                     "type": "array",
                     "items": {
-                      "type": "integer",
-                      "minimum": 0
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "string",
+                          "const": "${getInput}"
+                        }
+                      ]
                     }
                   }
                 ],
                 "default": 80
               },
               "subjects": {
-                "order": 3,
+                "order": 2,
                 "description": "The text, usually the selected text, that will be justified on each line.  An empty string in the array means there will be no text justified on that line.",
                 "oneOf": [
                   {
-                    "type": "string"
+                    "type": "array",
+                    "default": [ "", "${selectedText}", "" ],
+                    "additionalItems": true,
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "additionalItems": true
-                    }
+                    "type": "string",
+                    "default": "${selectedText}",
+                    "additionalItems": true
                   }
-                ],
-                "if": {
-                  "type": "array"
-                },
-                "then": {
-                  "default": ["", "${selectedText}", ""],                
-                  "additionalItems": true,
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "default": [ "", "${selectedText}", "" ]
+                ]
               },
               "justify": {
-                "order": 4,
+                "order": 3,
                 "description": "Where to place the selected text  Options: center, left, right.",
                 "oneOf": [
                   {
@@ -133,17 +127,21 @@
                     "enum": [
                       "center",
                       "left",
-                      "right"
+                      "right",
+                      "",
+                      "${getInput}"
                     ],
                     "enumDescriptions": [
                       "Center the selected text.",
                       "Put the selected text on the left - after the start characters and leftGap.",
-                      "Put the selected text on the right."
+                      "Put the selected text on the right.",
+                      "Empty string: use default or previous entry.",
+                      "Open an input box for the value of justify."
                     ]
                   },
                   {
                     "type": "array",
-                    "default": ["", "center", ""],
+                    "default": [ "", "center", "" ],
                     "additionalItems": false,
                     "items": {
                       "type": "string",
@@ -159,16 +157,17 @@
                         },
                         {
                           "const": ""
+                        },
+                        {
+                          "const": "${getInput}"
                         }
                       ]
                     }
                   }
-                ],
-                
-                "default": "center"
+                ]
               },
               "startText": {
-                "order": 5,
+                "order": 4,
                 "description": "Text to put at the start of each line.",
                 "default": "${BLOCK_COMMENT_START}",
                 "examples": [
@@ -188,7 +187,7 @@
                 ]
               },
               "endText": {
-                "order": 6,
+                "order": 5,
                 "description": "Text to put at the end of each line.",
                 "default": "${BLOCK_COMMENT_END}",
                 "examples": [
@@ -205,49 +204,72 @@
                       "additionalItems": true
                     }
                   }
-                ]                
+                ]
               },
               "gapLeft": {
-                "order": 7,
-                "default": 3,
+                "order": 6,
                 "description": "Number of spaces to the left of the selected text.  Minimum = 0.",
                 "oneOf": [
                   {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 0,
+                    "default": 3
+                  },
+                  {
+                    "type": "string",
+                    "const": "${getInput}"
                   },
                   {
                     "type": "array",
                     "items": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "default": 3
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 3
+                        },
+                        {
+                          "type": "string",
+                          "const": "${getInput}"
+                        }
+                      ]
                     }
                   }
                 ]
               },
               "gapRight": {
-                "order": 8,
-                "default": 3,
+                "order": 7,
                 "description": "Number of spaces to the right of the selected text.  Minimum = 0.",
                 "oneOf": [
                   {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 0,
+                    "default": 3
+                  },
+                  {
+                    "type": "string",
+                    "const": "${getInput}"
                   },
                   {
                     "type": "array",
                     "items": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "default": 3
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 3
+                        },
+                        {
+                          "type": "string",
+                          "const": "${getInput}"
+                        }
+                      ]
                     }
                   }
                 ]
-                
               },
               "padLines": {
-                "order": 9,
+                "order": 8,
                 "default": "-",
                 "description": "Character to be used to pad around the justigied text, isf any, in each line.",
                 "oneOf": [
@@ -257,11 +279,25 @@
                     "maxLength": 1
                   },
                   {
+                    "type": "string",
+                    "const": "${getInput}",
+                    "description": "To input a string of one character only."
+                  },
+                  {
                     "type": "array",
                     "items": {
-                      "type": "string",
-                      "minLength": 0,
-                      "maxLength": 1
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 1
+                        },
+                        {
+                          "type": "string",
+                          "const": "${getInput}",
+                          "description": "To input a string of one character only."
+                        }
+                      ]
                     }
                   }
                 ]

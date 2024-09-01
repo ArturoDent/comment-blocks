@@ -25,17 +25,21 @@
                   "enum": [
                     "center",
                     "left",
-                    "right"
+                    "right",
+                    "",
+                    "${getInput}"
                   ],
                   "enumDescriptions": [
                     "Center the selected text.",
                     "Put the selected text on the left - after the start characters and leftGap.",
-                    "Put the selected text on the right."
+                    "Put the selected text on the right.",
+                    "Empty string: use default or previous entry.",
+                    "Open an input box for the value of justify."
                   ]
                 },
                 {
                   "type": "array",
-                  "default": ["", "center", ""],
+                  "default": [ "", "center", "" ],
                   "additionalItems": false,
                   "items": {
                     "type": "string",
@@ -51,29 +55,18 @@
                       },
                       {
                         "const": ""
+                      },
+                      {
+                        "const": "${getInput}"
                       }
                     ]
                   }
                 }
-              ],
-              
-              "default": "center"
+              ]
             },
             "lineLength": {
               "description": "Number of total characters in each line.",
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "integer",
-                    "minimum": 0
-                  }
-                }
-              ],
+              "$ref": "#/definitions/integers",
               "default": 80
             },
             "startText": {
@@ -88,11 +81,13 @@
             },
             "gapLeft": {
               "description": "Number of spaces on the left of the selected text.",
-              "$ref": "#/definitions/gaps"
+              "$ref": "#/definitions/integers",
+              "default": 1
             },
             "gapRight": {
               "description": "Number of spaces on the right of the selected text.",
-              "$ref": "#/definitions/gaps"
+              "$ref": "#/definitions/integers",
+              "default": 1
             },
             "padLines": {
               "description": "Character to be used to pad around the selected text in the first line.",
@@ -100,56 +95,25 @@
               "$comment": "could be the empty string, length = 0",
               "default": "-"
             },
-            "numberOfLines": {
-              "description": "How many lines in the block.",
-              "$comment": "Minimum is 1",
-              "type": "integer",
-              "minimum": 1,
-              "default": 3
-            },
             "subjects": {
               "description": "The text, usually the selected text, that will be justified on each line.  An empty string in the array means there will be no text justified on that line.",
               // "type": "array",
-              "$ref": "#/definitions/textTypes",
+              // "$ref": "#/definitions/textTypes",
               "oneOf": [
                 {
-              "if": {
-                "type": "array"
-              },
-              "then": {
-                "default": ["", "${selectedText}", ""],                
-                "additionalItems": true,
-                "items": {
-                  "type": "string"
+                  "type": "array",
+                  "default": [ "", "${selectedText}", "" ],
+                  "additionalItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string",
+                  "default": "${selectedText}",
+                  "additionalItems": true
                 }
-              }
-            },
-            {
-              "if": {
-                "type": "string"
-              },
-              "then": {
-                "default": "${selectedText}",                
-                "additionalItems": true
-              }
-            }
-            ]
-              // "additionalProperties": true,
-              // "patternProperties": {
-              //   "\\$\\{": {
-              //     // "properties": {
-              //         "${file}": {
-              //         "type": "string",
-              //         "description": " the file name as a full path"
-              //         },
-              //         "${relativeFile}": {
-              //         "type": "string",
-              //         "description": " relative file path"
-              //         }
-              //       // }
-              //   }
-              // },
-              
+              ]
             }
           }
         }
@@ -157,22 +121,32 @@
     }
   },
   "definitions": {
-    "gaps": {
+    "integers": {
       "oneOf": [
         {
           "type": "integer",
           "minimum": 0
         },
         {
+          "type": "string",
+          "const": "${getInput}"
+        },
+        {
           "type": "array",
           "items": {
-            "type": "integer",
-            "minimum": 0,
-            "default": 3
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "string",
+                "const": "${getInput}"
+              }
+            ]
           }
         }
-      ],
-      "default": 3
+      ]
     },
     "textTypes": {
       "oneOf": [
@@ -196,11 +170,25 @@
           "maxLength": 1
         },
         {
+          "type": "string",
+          "const": "${getInput}",
+          "description": "To input a string of one character only."
+        },
+        {
           "type": "array",
           "items": {
-            "type": "string",
-            "minLength": 0,
-            "maxLength": 1
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1
+              },
+              {
+                "type": "string",
+                "const": "${getInput}",
+                "description": "To input a string of one character only."
+              }
+            ]
           }
         }
       ]

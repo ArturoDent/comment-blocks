@@ -12,7 +12,7 @@ import * as jsonc from 'jsonc-parser';  // for the language-specific comment cha
  */
 export async function makeKeybindingsCompletionProvider (context: ExtensionContext) {
     const keybindingCompletionProvider = languages.registerCompletionItemProvider (
-      { pattern: '**/keybindings.json' },
+      { pattern: '**/keybindings.json' },  // TODO: add scheme
       {
         provideCompletionItems(document, position) {
 
@@ -50,7 +50,7 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
           const props = ["startText", "endText", "subjects"];
           
           if (props.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {            
-            const argCompletions = _completeArgs(linePrefix, position, curLocation);
+            const argCompletions = _completeArgs(linePrefix, position, curLocation.path[2] as string);
             if (argCompletions) return argCompletions;
             else return undefined;
           }
@@ -66,19 +66,69 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
 
 
 /**
- * Parse linePrefix for correct completionItems.
+ * Register a CompletionItemProvider for keybindings.json
+ * @param {import("vscode").ExtensionContext} context
+ */
+export async function makeSettingsCompletionProvider (context: ExtensionContext) {
+  const settingsCompletionProvider = languages.registerCompletionItemProvider (
+    { pattern: '**/settings.json' },  // TODO: add scheme
+    {
+      provideCompletionItems(document, position) {
+
+        const linePrefix = document.lineAt(position).text.substring(0, position.character);
+
+        let curLocation;
+            
+        const rootNode = jsonc.parseTree(document.getText());
+        
+        try {   // some kind of a parsing bug in jsonc-parser?
+          curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+        }
+        catch (error) {
+          // console.log(error)
+        }
+
+        if (!curLocation || curLocation.isAtPropertyKey) return undefined;
+        if (curLocation.path[1] === '') return undefined;  // trying to get command/args/key/when of keybinding
+        
+        let thisConfig;
+        
+        if (rootNode) thisConfig = _findConfig(rootNode, document.offsetAt(position));
+        if (thisConfig?.children && thisConfig?.children[0]?.value  !== "commentBlocks.defaults") return undefined;
+                 
+        const triggerCharacters: boolean = linePrefix.endsWith('$') || linePrefix.endsWith('${');
+        if (!curLocation?.previousNode || !triggerCharacters) return undefined;
+        
+        const props = ["startText", "endText", "subjects"];  // only these get variable completions
+        
+        if (props.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
+          const argCompletions = _completeArgs(linePrefix, position, curLocation.path[1] as string);
+          if (argCompletions) return argCompletions;
+          else return undefined;
+        }
+        return undefined;
+      }
+    },
+  '$', '{'   // trigger intellisense/completion
+);
+
+context.subscriptions.push(settingsCompletionProvider);
+return settingsCompletionProvider;
+};
+
+
+/**
+ * Check linePrefix for completion trigger characters.
  * 
  * @param   {string} linePrefix 
  * @param   {import("vscode").Position} position 
- * @param   {jsonc.Location} curLocation
+ * @param   {string} option - startText/endText/subjects
  * @returns {Array<CompletionItem>}
  */
-function _completeArgs(linePrefix: string, position: Position, curLocation: jsonc.Location) {
-  
-  const arg = curLocation.path[2];
+function _completeArgs(linePrefix: string, position: Position, option: string) {
   
 // ----------  startText/endText/subjects  -----------
-  if (arg === 'startText' || arg === 'endText' || arg === 'subjects') {
+  if (option === 'startText' || option === 'endText' || option === 'subjects') {
     if (linePrefix.endsWith('${'))
       return [..._completeVariables(position, "${")];
     

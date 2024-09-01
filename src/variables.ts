@@ -1,8 +1,9 @@
 /**
  * @returns {Array} - all the available variables defined by this extension
  */
-export function getExtensionDefinedVariables () {
-  return ["${getTextLine:\\d+}", "${getInput}", "${nextSymbol}", "${previousSymbol}",
+export function getExtensionDefinedVariables() {
+  // ${default} is not visible to the user
+  return ["${getTextLine:\\d+}", "${getInput}", "${default}", "${nextSymbol}", "${previousSymbol}",
     "${previousFunction}", "${nextFunction}", "${parentFunction}", "${thisFunction}"];
 }
 

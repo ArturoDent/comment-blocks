@@ -12,7 +12,6 @@ export type CommentBlockSettings = {
   gapLeft: number | Array<number>,
   gapRight: number | Array<number>,
   padLines: string | Array<string>,
-  numberOfLines: number,
   subjects: Array<string>,
 };
 
@@ -33,7 +32,6 @@ export async function getSettings(): Promise<CommentBlockSettings> {
     gapRight: defaults?.gapRight                   ||  3,
     
     padLines: defaults?.padLines                   ||  '-',
-    numberOfLines: defaults?.numberOfLines         ||  3,
     subjects: defaults?.subjects                   ||  ["", "${selectedText}", ""]
   };
 }

@@ -13,10 +13,16 @@ type GroupNames = {
   capGroup?: any
 };
 
-// type Comment = {
-//   lineComment?: string,
-//   blockComment?: string[]
-// };
+// TODO:this has to be cleared each time, in the command registration or block()
+const getInputDefaults = {
+  lineLength: "",
+  startText: "",
+  endText: "",
+  justify: "",
+  gapLeft: "",
+  gapRight: "",
+  padLines: ""
+};
 
 
 /**
@@ -45,7 +51,18 @@ export async function resolveVariables (resolve: string, selection: Selection, m
   let re;
   let groupNames: GroupNames;
   
- // --------------------  path variables -----------------------------------------------------------
+  
+  // --------------------  extension-defined variables -------------------------------------------
+  
+  // have this first so any variables in ${getInput} will get resolved below!
+  // Including other extension - defined variables!!
+  re = regexp.extensionGlobalRE;
+
+  resolved = await utilities.replaceAsync2(resolved, re, resolveExtensionDefinedVariables, selection, matchIndex, caller, line);
+  // --------------------  extension-defined variables ----------------------------------------------
+  
+  
+  // --------------------  path variables -----------------------------------------------------------
  
   re = regexp.pathGlobalRE;
   
@@ -79,14 +96,6 @@ export async function resolveVariables (resolve: string, selection: Selection, m
     else return _applyCaseModifier(groupNames, variableToResolve);
   });
   // --------------------  snippet variables -----------------------------------------------------------
-  
-  
- // --------------------  extension-defined variables -------------------------------------------
- 
-  re = regexp.extensionGlobalRE;
-  
-  resolved = await utilities.replaceAsync2(resolved, re, resolveExtensionDefinedVariables, selection, matchIndex, caller, line);
-  // --------------------  extension-defined variables ----------------------------------------------
 
   return resolved;
 };
@@ -98,7 +107,7 @@ export async function resolveVariables (resolve: string, selection: Selection, m
  * @param {string} variableToResolve - the 
  * @param {string} caller - which option to get the input for 
  * @param {number} line - which line number of the block comment
- * @returns {Promise<string>} - the resolved extension-defined variable
+ * @returns {Promise<strin|numberg>} - the resolved extension-defined variable
  */
 async function _resolveExtensionDefinedVariables (variableToResolve: string, caller: string, line: number) {
   
@@ -128,16 +137,26 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
 
     switch (namedGroups.vars) {
     
+      // NOT coming from "subjects": "${getInput"
+      
       case "${getInput}": case "${ getInput }":
         let input = await utilities.getInput(caller, line);
         // TODO: if input is an array (wrapped in a string) like "[1,2,3]" or "["hi", "there", "today"]"
         // parseInt, if caller expects numerical value
-        // input = eval("[" + input + "]");
+        // input = eval("[" + input + "]");  or Function
         if (input || input === '')  // accept inputBox with nothing in it = ''
           resolved = input;
         else {
           resolved = '';
         }
+        // (getInputDefaults as any)[caller] = resolved;
+        getInputDefaults[caller as keyof typeof getInputDefaults] = resolved;
+        break;
+        
+      case "${default}": case "${ default }":
+        // if expecting a number, parseInt somewhere
+        // resolved = (getInputDefaults as any)[caller];
+        resolved = getInputDefaults[caller as keyof typeof getInputDefaults];
         break;
       
       case "${nextSymbol}": case "${ nextSymbol }":
