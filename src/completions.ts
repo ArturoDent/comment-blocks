@@ -47,13 +47,20 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
           // prevents completion at "reveal": "last"|,
           if (curLocation?.previousNode && linePrefix.endsWith(`"${ curLocation.previousNode.value }"`)) return undefined;
           
-          const props = ["startText", "endText", "subjects"];
-          
-          if (props.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {            
-            const argCompletions = _completeArgs(linePrefix, position, curLocation.path[2] as string);
+          const stringProps = ["startText", "endText", "subjects"];
+          const numbersProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
+        
+          if (stringProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
+            const argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[1] as string);
             if (argCompletions) return argCompletions;
             else return undefined;
           }
+          else if (numbersProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
+            const argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[1] as string);
+            if (argCompletions) return argCompletions;
+            else return undefined;
+          }
+
 					return undefined;
 				}
 			},
@@ -99,10 +106,16 @@ export async function makeSettingsCompletionProvider (context: ExtensionContext)
         const triggerCharacters: boolean = linePrefix.endsWith('$') || linePrefix.endsWith('${');
         if (!curLocation?.previousNode || !triggerCharacters) return undefined;
         
-        const props = ["startText", "endText", "subjects"];  // only these get variable completions
+        const stringProps = ["startText", "endText", "subjects"];  // these get string variable completions
+        const numberProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
         
-        if (props.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
-          const argCompletions = _completeArgs(linePrefix, position, curLocation.path[1] as string);
+        if (stringProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
+          const argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[1] as string);
+          if (argCompletions) return argCompletions;
+          else return undefined;
+        }
+        else if (numberProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
+          const argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[1] as string);
           if (argCompletions) return argCompletions;
           else return undefined;
         }
@@ -119,13 +132,14 @@ return settingsCompletionProvider;
 
 /**
  * Check linePrefix for completion trigger characters.
+ * Get completions for string options.
  * 
  * @param   {string} linePrefix 
  * @param   {import("vscode").Position} position 
  * @param   {string} option - startText/endText/subjects
  * @returns {Array<CompletionItem>}
  */
-function _completeArgs(linePrefix: string, position: Position, option: string) {
+function _completeStringArgs(linePrefix: string, position: Position, option: string) {
   
 // ----------  startText/endText/subjects  -----------
   if (option === 'startText' || option === 'endText' || option === 'subjects') {
@@ -137,6 +151,27 @@ function _completeArgs(linePrefix: string, position: Position, option: string) {
   }
 }
 
+
+/**
+ * Get completions for number options.
+ * Check linePrefix for completion trigger characters.
+ * 
+ * @param   {string} linePrefix 
+ * @param   {import("vscode").Position} position 
+ * @param   {string} option - lineLength/gapLeft/gapRight
+ * @returns {Array<CompletionItem>}
+ */
+function _completeNumberArgs(linePrefix: string, position: Position, option: string) {
+  
+  // ----------  startText/endText/subjects  -----------
+    if (option === 'lineLength' || option === 'gapLeft' || option === 'gapRight') {
+      if (linePrefix.endsWith('${'))
+        return [..._completeNumberVariables(position, "${")];
+      
+      else if (linePrefix.endsWith('$'))
+        return [..._completeNumberVariables(position, "$")];
+    }
+  }
 
 /**
  * Get the keybinding where the cursor is located.
@@ -246,6 +281,35 @@ function _completeVariables(position: Position, trigger: string) {
     
     _makeValueCompletionItem("${RANDOM}", replaceRange, "", "28", "Six random Base-10 digits."),
     _makeValueCompletionItem("${RANDOM_HEX}", replaceRange, "", "28", "Six random Base-16 digits."),  
+  ];
+
+	return completionItems;
+}
+
+
+/**
+ * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
+ * 
+ * @param   {import("vscode").Position} position
+ * @param   {string} trigger - triggered by '$' so include its range
+ * @returns {Array<CompletionItem>}
+ */
+function _completeNumberVariables(position: Position, trigger: string) {
+
+	// triggered by 1 '$', so include it to complete w/o two '$${file}'
+	let replaceRange;
+
+	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new Range(position, position);
+
+  const completionItems = [
+    
+    _makeValueCompletionItem("${selectedText}", replaceRange, "", "01", "The **first** selection in the current editor. Same as **${TM_SELECTED_TEXT}**."),
+    _makeValueCompletionItem("${TM_SELECTED_TEXT}", replaceRange, "", "011", "The **first** selection in the current editor. Same as **${selectedText}**."),
+    
+    _makeValueCompletionItem("${CLIPBOARD}", replaceRange, "", "02", "The clipboard contents."),
+    
+    _makeValueCompletionItem("${getInput}", replaceRange, "", "03", "Open an input dialog to get this text."), 
   ];
 
 	return completionItems;

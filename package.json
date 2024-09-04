@@ -171,7 +171,7 @@
                 "description": "Text to put at the start of each line.",
                 "default": "${BLOCK_COMMENT_START}",
                 "examples": [
-                  "LINE_COMMENT"
+                  "${LINE_COMMENT}"
                 ],
                 "oneOf": [
                   {
@@ -191,7 +191,7 @@
                 "description": "Text to put at the end of each line.",
                 "default": "${BLOCK_COMMENT_END}",
                 "examples": [
-                  "LINE_COMMENT"
+                  "${LINE_COMMENT}"
                 ],
                 "oneOf": [
                   {
@@ -272,6 +272,7 @@
                 "order": 8,
                 "default": "-",
                 "description": "Character to be used to pad around the justigied text, isf any, in each line.",
+                "examples": ["-", "*", "/", " "],
                 "oneOf": [
                   {
                     "type": "string",

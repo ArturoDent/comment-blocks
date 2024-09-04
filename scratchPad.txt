@@ -1,87 +1,41 @@
-{
-        "title": "Comment Blocks",
-        "id": "comment-blocks",
-        "order": 0,
-        "properties": {
-          "commentBlocks.defaults": {
-            "markdownDescription": "Defaults to be used unless overridden in keybindings.",
-            "order": 0,
-            "type": "object",
-            "scope": "resource",
-            "properties": {
-              "lineLength": {
-                "title": "Quoosy title",
-                "type": "integer",
-                "default": 80,
-                "minimum": 0,
-                "description": "How many characters the line will have."
-              },
-              "startText": {
-                "type": "string",
-                "description": "Text to put at the beginning of each line.",
-                "default": "${BLOCK_COMMENT_START}",
-                "examples": [
-                  "LINE_COMMENT"
-                ]
-              },
-              "endText": {
-                "type": "string",
-                "description": "Text to put at the end of each line.",
-                "default": "${BLOCK_COMMENT_END}",
-                "examples": [
-                  "LINE_COMMENT"
-                ]
-              },
-              "justify": {
-                "type": "string",
-                "enum": [
-                  "left",
-                  "center",
-                  "right"
-                ],
-                "enumDescriptions": [
-                  "Place selected text on the left of the line.",
-                  "Place selected text in the center of the line.  Default.",
-                  "Place selected text on the right of the line."
-                ],
-                "default": "center",
-                "description": "Where to put the selected text within the line."
-              },
-              "gapLeft": {
-                "type": "integer",
-                "default": 3,
-                "minimum": 0,
-                "description": "Number of spaces to the left of the selected text.  Minimum = 0."
-              },
-              "gapRight": {
-                "type": "integer",
-                "default": 3,
-                "minimum": 0,
-                "description": "Number of spaces to the right of the selected text.  Minimum = 0."
-              },
-              "padFirstLine": {
-                "type": "string",
-                "default": "-",
-                "maxLength": 1,
-                "minLength": 0,
-                "description": "Character to use to pad out the first line.  Can be empty."
-              },
-              "padSecondLine": {
-                "type": "string",
-                "default": " ",
-                "maxLength": 1,
-                "minLength": 1,
-                "description": "Character to use to pad out the second line. Can be empty."
-              },
-              "padThirdLine": {
-                "type": "string",
-                "default": "-",
-                "maxLength": 1,
-                "minLength": 1,
-                "description": "Character to use to pad out the third line. Can be empty."
-              }
-            },
-            "additionalProperties": false
-          }
-        }
-      }
+      // gap lengths don't matter
+
+  //     if ((options.lineLength as number[])[thisIndex] % 2) { // lineLength is odd
+  //       if (len % 2) {  // length of the longest subject is odd
+  //         if (subject[1].length % 2) // odd --
+  //           options.subjects[thisIndex] = " ".padEnd(Math.floor(diff / 2), ' ') + subject[1].padEnd(Math.floor(diff / 2 + subject[1].length), ' ');
+  //         else // even
+  //           options.subjects[thisIndex] = " ".padEnd(Math.floor(diff / 2), ' ') + subject[1].padEnd(Math.floor(diff / 2 + subject[1].length), ' ');
+  //       }
+  //       else {  // length of the longest subject is even
+  //         if (subject[1].length % 2) // odd
+  //           options.subjects[thisIndex] = " ".padEnd(Math.ceil(diff / 2), ' ') + subject[1].padEnd(Math.ceil(diff / 2 + subject[1].length), ' ');
+  //         else // even
+  //           options.subjects[thisIndex] = " ".padEnd(Math.floor(diff / 2), ' ') + subject[1].padEnd(Math.floor(diff / 2 + subject[1].length), ' ');
+  //       }
+  //     }
+  //     else { //  lineLength is even
+  //       if (subject[1].length % 2) // odd
+  //         options.subjects[thisIndex] = " ".padEnd(Math.floor(diff / 2), ' ') + subject[1].padEnd(Math.floor(diff / 2 + subject[1].length), ' ');
+  //       else // even
+  //         options.subjects[thisIndex] = " ".padEnd(Math.ceil(diff / 2), ' ') + subject[1].padEnd(Math.ceil(diff / 2 + subject[1].length), ' ');
+  //     }
+  //   }
+  // }
+  
+  
+    // use below if want the line lengths to match when there is a tabStop(s) or not
+    // if subject is a tabstop, increase subject length by 2 for each $1, $2, etc.
+    // const capGroupOnlyRE = /(?<capGroupOnly>(?<!\$)\$\{(\d)\}|(?<!\$)\$(\d))/g;
+    // const capGroups = subject.match(capGroupOnlyRE);
+    // if (capGroups) {
+    //   padLeftLength += capGroups.length;
+    //   padRightLength  += capGroups.length;
+    // }
+    
+    
+    // if (justify === 'center' || justify === '') {
+    //   // to put the extra filler (if length is not an integer) before the gap, using ceil and floor      
+    //   padLeftLength = Math.ceil(lineLength / 2 - subjectLength / 2 - gapLeft - startText.length);
+    //   padRightLength = Math.floor(lineLength / 2 - subjectLength / 2 - gapRight - endText.length);
+    // }

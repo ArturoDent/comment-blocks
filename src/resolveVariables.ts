@@ -149,13 +149,11 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
         else {
           resolved = '';
         }
-        // (getInputDefaults as any)[caller] = resolved;
         getInputDefaults[caller as keyof typeof getInputDefaults] = resolved;
         break;
         
       case "${default}": case "${ default }":
         // if expecting a number, parseInt somewhere
-        // resolved = (getInputDefaults as any)[caller];
         resolved = getInputDefaults[caller as keyof typeof getInputDefaults];
         break;
       
@@ -168,8 +166,9 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
             return symbol.range.start.isAfter(editor.selection.active);
           });
           if (nextSymbol) resolved = nextSymbol.name;
+          else resolved = '';
         }
-        else resolved = '';        
+        else resolved = '';
         break;
       
       case "${previousSymbol}": case "${ previousSymbol }":
@@ -181,6 +180,7 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
               return symbol.range.start.isBefore(editor.selection.active);
             });
             if (previousSymbol) resolved = previousSymbol.name;
+            else resolved = '';
           }
           else resolved = '';        
           break;
@@ -197,7 +197,7 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
           if (thisFunction) resolved = thisFunction.name;
           else resolved = '';
         }
-        else resolved = '';        
+        else resolved = '';
         break;
       
       case "${nextFunction}": case "${ nextFunction }":
@@ -224,6 +224,7 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
             return symbol.kind === SymbolKind.Function && symbol.range.contains(editor.selection.active);
           });
           if (thisFunction) resolved = thisFunction.name;
+          else resolved = '';
         }
         else resolved = '';
         break;
@@ -233,9 +234,12 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
         const symbols5: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
           document.uri);
     
-        if (symbols5) {          
+        if (symbols5) {
           const parentFunction = Object.values(symbols5).find(symbol => {
-            return symbol.kind === SymbolKind.Function && symbol.range.contains(editor.selection.active);
+            // handles when you select beyond the range of a function
+            const intersection = editor.selection.intersection(symbol.range);
+            if (intersection) return symbol.kind === SymbolKind.Function && symbol.range.contains(intersection);
+            else return false;
           });
           
           if (parentFunction) {
@@ -243,11 +247,17 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
               return child.kind === SymbolKind.Function;
             });
           
-            if (childFunctions) {
-              const myFunction = childFunctions.find(func => func.range.contains(editor.selection.active));
+            if (childFunctions) {  // only goes to one level deep, there could be child functions of child functions - ignored
+              const myFunction = childFunctions.find(func => {
+              // handles when you select beyond the range of a function
+                const intersection = editor.selection.intersection(func.range);
+                if (intersection) return func.range.contains(intersection);
+                else return false;
+              });
               if (myFunction) resolved = myFunction?.name;
               else resolved = parentFunction?.name;
             }
+            else resolved = '';
           }
           else resolved = '';
         }

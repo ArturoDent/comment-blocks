@@ -59,6 +59,8 @@ There are many options and variables that can be used in creating these blocks.
 |                   |                      |                               |                                         |
 | subjects          | string[]             | `["", "${selectedText}", ""]` | The subject for each line               |
 
+* `selectCurrentLine` applies to the current line and all partially selected lines in a multiline selection.  The selection will be expanded to include all of the lines - so from character 0 to the end of the last selected line.
+
 * The number of lines of the comment block is determined by how many `subjects` you have.
 
 ```jsonc
