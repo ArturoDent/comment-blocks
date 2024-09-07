@@ -127,151 +127,138 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
   
   let resolved = variableToResolve;
   
-  let testLineRE = /\$\{getTextLine:\s*(?<lineNumberOnly>[-+]?\d+)\s*\}/;
-  let lineTextMatch = variableToResolve?.match(testLineRE);
-   
-  if (lineTextMatch?.groups?.lineNumberOnly) {      // '22'
-    if (Number(lineTextMatch?.groups?.lineNumberOnly) >= 0)
-      resolved = document?.lineAt(Number(lineTextMatch?.groups?.lineNumberOnly)).text;
-    else 
-      resolved = document?.lineAt(document.lineCount + Number(lineTextMatch?.groups?.lineNumberOnly)).text;
-  }
-    
-  if (!lineTextMatch?.groups) {
+  const namedGroups = resolved?.match(regexp.pathCaseModifierRE)?.groups;
+  if (!namedGroups) return variableToResolve;
 
-    const namedGroups = resolved?.match(regexp.pathCaseModifierRE)?.groups;
-    if (!namedGroups) return variableToResolve;
-
-    switch (namedGroups.vars) {
+  switch (namedGroups.vars) {
+  
+    // NOT coming from "subjects": "${getInput"
     
-      // NOT coming from "subjects": "${getInput"
+    case "${getInput}": case "${ getInput }":
+      let input = await utilities.getInput(caller, line);
+      // input = eval("[" + input + "]");  or Function
+      if (input || input === '')  // accept inputBox with nothing in it = ''
+        resolved = input;
+      else {
+        resolved = '';
+      }
+      getInputDefaults[caller as keyof typeof getInputDefaults] = resolved;
+      break;
       
-      case "${getInput}": case "${ getInput }":
-        let input = await utilities.getInput(caller, line);
-        // input = eval("[" + input + "]");  or Function
-        if (input || input === '')  // accept inputBox with nothing in it = ''
-          resolved = input;
-        else {
-          resolved = '';
+    case "${default}": case "${ default }":
+      // if expecting a number, parseInt somewhere
+      resolved = getInputDefaults[caller as keyof typeof getInputDefaults];
+      break;
+    
+    case "${nextSymbol}": case "${ nextSymbol }":
+      const symbols: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
+        document.uri);
+  
+      if (symbols) {
+        const nextSymbol = Object.values(symbols).find(symbol => {
+          return symbol.range.start.isAfter(editor.selection.active);
+        });
+        if (nextSymbol) resolved = nextSymbol.name;
+        else resolved = '';
+      }
+      else resolved = '';
+      break;
+    
+    case "${previousSymbol}": case "${ previousSymbol }":
+        const symbols1: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
+          document.uri);
+    
+        if (symbols1) {
+          const previousSymbol = Object.values(symbols1).find(symbol => {
+            return symbol.range.start.isBefore(editor.selection.active);
+          });
+          if (previousSymbol) resolved = previousSymbol.name;
+          else resolved = '';
         }
-        getInputDefaults[caller as keyof typeof getInputDefaults] = resolved;
+        else resolved = '';        
         break;
+    
+    case "${previousFunction}": case "${ previousFunction }":
+      const symbols2: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
+        document.uri);
+      
+      if (symbols2) {
+        const thisFunction = Object.values(symbols2).findLast(symbol => {
+          return symbol.kind === SymbolKind.Function && symbol.range.start.isBefore(editor.selection.active);
+        });
+        // handle subFunctions here?
+        if (thisFunction) resolved = thisFunction.name;
+        else resolved = '';
+      }
+      else resolved = '';
+      break;
+    
+    case "${nextFunction}": case "${ nextFunction }":
+      const symbols3: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
+        document.uri);
+      
+      if (symbols3) {
+        const thisFunction = Object.values(symbols3).find(symbol => {
+          return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(editor.selection.active);
+        });
+        // handle subFunctions here?  make a recursive function
+        if (thisFunction) resolved = thisFunction.name;
+        else resolved = '';
+      }
+      else resolved = '';
+      break;
+    
+    case "${parentFunction}": case "${ parentFunction }":
+      const symbols4: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
+        document.uri);
+  
+      if (symbols4) {
+        const thisFunction = Object.values(symbols4).find(symbol => {
+          return symbol.kind === SymbolKind.Function && symbol.range.contains(editor.selection.active);
+        });
+        if (thisFunction) resolved = thisFunction.name;
+        else resolved = '';
+      }
+      else resolved = '';
+      break;
+    
+    case "${thisFunction}": case "${ thisFunction }":
+      // loop through myFunction's children (that are Functions) with contains
+      const symbols5: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
+        document.uri);
+  
+      if (symbols5) {
+        const parentFunction = Object.values(symbols5).find(symbol => {
+          // handles when you select beyond the range of a function
+          const intersection = editor.selection.intersection(symbol.range);
+          if (intersection) return symbol.kind === SymbolKind.Function && symbol.range.contains(intersection);
+          else return false;
+        });
         
-      case "${default}": case "${ default }":
-        // if expecting a number, parseInt somewhere
-        resolved = getInputDefaults[caller as keyof typeof getInputDefaults];
-        break;
-      
-      case "${nextSymbol}": case "${ nextSymbol }":
-        const symbols: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
-          document.uri);
-    
-        if (symbols) {
-          const nextSymbol = Object.values(symbols).find(symbol => {
-            return symbol.range.start.isAfter(editor.selection.active);
+        if (parentFunction) {
+          const childFunctions: Array<DocumentSymbol> = parentFunction.children.filter((child: DocumentSymbol) => {
+            return child.kind === SymbolKind.Function;
           });
-          if (nextSymbol) resolved = nextSymbol.name;
-          else resolved = '';
-        }
-        else resolved = '';
-        break;
-      
-      case "${previousSymbol}": case "${ previousSymbol }":
-          const symbols1: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
-            document.uri);
-      
-          if (symbols1) {
-            const previousSymbol = Object.values(symbols1).find(symbol => {
-              return symbol.range.start.isBefore(editor.selection.active);
-            });
-            if (previousSymbol) resolved = previousSymbol.name;
-            else resolved = '';
-          }
-          else resolved = '';        
-          break;
-      
-      case "${previousFunction}": case "${ previousFunction }":
-        const symbols2: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
-          document.uri);
         
-        if (symbols2) {
-          const thisFunction = Object.values(symbols2).findLast(symbol => {
-            return symbol.kind === SymbolKind.Function && symbol.range.start.isBefore(editor.selection.active);
-          });
-          // handle subFunctions here?
-          if (thisFunction) resolved = thisFunction.name;
-          else resolved = '';
-        }
-        else resolved = '';
-        break;
-      
-      case "${nextFunction}": case "${ nextFunction }":
-        const symbols3: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
-          document.uri);
-        
-        if (symbols3) {
-          const thisFunction = Object.values(symbols3).find(symbol => {
-            return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(editor.selection.active);
-          });
-          // handle subFunctions here?  make a recursive function
-          if (thisFunction) resolved = thisFunction.name;
-          else resolved = '';
-        }
-        else resolved = '';
-        break;
-      
-      case "${parentFunction}": case "${ parentFunction }":
-        const symbols4: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
-          document.uri);
-    
-        if (symbols4) {
-          const thisFunction = Object.values(symbols4).find(symbol => {
-            return symbol.kind === SymbolKind.Function && symbol.range.contains(editor.selection.active);
-          });
-          if (thisFunction) resolved = thisFunction.name;
-          else resolved = '';
-        }
-        else resolved = '';
-        break;
-      
-      case "${thisFunction}": case "${ thisFunction }":
-        // loop through myFunction's children (that are Functions) with contains
-        const symbols5: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
-          document.uri);
-    
-        if (symbols5) {
-          const parentFunction = Object.values(symbols5).find(symbol => {
+          if (childFunctions) {  // only goes to one level deep, there could be child functions of child functions - ignored
+            const myFunction = childFunctions.find(func => {
             // handles when you select beyond the range of a function
-            const intersection = editor.selection.intersection(symbol.range);
-            if (intersection) return symbol.kind === SymbolKind.Function && symbol.range.contains(intersection);
-            else return false;
-          });
-          
-          if (parentFunction) {
-            const childFunctions: Array<DocumentSymbol> = parentFunction.children.filter((child: DocumentSymbol) => {
-              return child.kind === SymbolKind.Function;
+              const intersection = editor.selection.intersection(func.range);
+              if (intersection) return func.range.contains(intersection);
+              else return false;
             });
-          
-            if (childFunctions) {  // only goes to one level deep, there could be child functions of child functions - ignored
-              const myFunction = childFunctions.find(func => {
-              // handles when you select beyond the range of a function
-                const intersection = editor.selection.intersection(func.range);
-                if (intersection) return func.range.contains(intersection);
-                else return false;
-              });
-              if (myFunction) resolved = myFunction?.name;
-              else resolved = parentFunction?.name;
-            }
-            else resolved = '';
+            if (myFunction) resolved = myFunction?.name;
+            else resolved = parentFunction?.name;
           }
           else resolved = '';
         }
         else resolved = '';
-        break;
+      }
+      else resolved = '';
+      break;
 
-      default:
-        break;
-    }
+    default:
+      break;
   }
 
   return resolved;

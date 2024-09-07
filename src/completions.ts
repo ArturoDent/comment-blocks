@@ -1,6 +1,6 @@
 import {
   ExtensionContext, languages, Range, Position,
-  CompletionItem, CompletionItemKind, SnippetString, MarkdownString
+  CompletionItem, CompletionItemKind, MarkdownString
 } from 'vscode';
 
 import * as jsonc from 'jsonc-parser';  // for the language-specific comment characters
@@ -220,7 +220,6 @@ function _completeVariables(position: Position, trigger: string) {
 		_makeValueCompletionItem("${previousFunction}", replaceRange, "", "07", "The previous function name above the cursor."),
     _makeValueCompletionItem("${nextSymbol}", replaceRange, "", "08", "The next symbol name below the cursor - may include variables, functions, etc."),
 		_makeValueCompletionItem("${previousSymbol}", replaceRange, "", "09", "The preevious symbol name above the cursor - may include variables, functions, etc"),
-		_makeValueCompletionItem("${getTextLine:\\d+}", replaceRange, "", "10", "The text at line n, 0-based."),
     
 		_makeValueCompletionItem("${file}", replaceRange, "", "11", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor. Same as **${TM_FILEPATH}**."),
 		_makeValueCompletionItem("${TM_FILEPATH}", replaceRange, "", "111", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor. Same as **${file}**."),
@@ -339,11 +338,6 @@ function _makeValueCompletionItem(value: string, replaceRange: Range, defaultVal
   if (sortText) item.sortText = sortText;
   // if (documentation) item.documentation = documentation;
   if (documentation) item.documentation = new MarkdownString(documentation);
-  
-  // to selectthe 'n' to be replaced
-  if (value === "${getTextLines:n}") {
-    item.insertText = new SnippetString("\\${getTextLines:\$\{1:n\}}");
-  }
- 
+
 	return item;
 }

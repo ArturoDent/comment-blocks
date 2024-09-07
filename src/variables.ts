@@ -17,7 +17,7 @@ export function getSpecialVariables () {
 export function getExtensionDefinedVariables() {
   
   // ${default} is not visible to the user
-  return ["${getTextLine:\\d+}", "${getInput}", "${default}", "${nextSymbol}", "${previousSymbol}",
+  return ["${getInput}", "${default}", "${nextSymbol}", "${previousSymbol}",
     "${previousFunction}", "${nextFunction}", "${parentFunction}", "${thisFunction}"];
 }
 

@@ -314,7 +314,6 @@ There is a **precedence** to the options:
 |  Extension variables   | These are defined by this extension only                                     |
 |------------------------|------------------------------------------------------------------------------|
 | `${getInput}`          | Opens an input box to get the content, can be used multiple times            |
-| `${getTextLine:n}`     | Get the text on line n, this  is 0-based                                     |
 |                        |                                                                              |
 | `${previousFunction}`  | The previous function name - somewhere above the cursor                      |
 | `${nextFunction}`      | The next function name - somewhere after the cursor                          |
@@ -724,5 +723,6 @@ Only the **primary** selection is used and **REPLACED**.  That is the first one 
 * Support pascalCase, camelCase, and snakeCase.
 * Handle content that exceeds the `lineLength`.
 * Understand what is writing to settings on prior run.  Not a problem but want to know.
+* Consider moving `${getInput}` abd `${default}` up to `getSpecialVariables()`.
 
 ## Release Notes

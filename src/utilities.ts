@@ -79,14 +79,7 @@ export async function handleInput(input: string, caller: string,) {
       // loop through all matches to see if any fail
       const vars = variables.getPathVariables().concat(variables.getSnippetVariables()).concat(variables.getExtensionDefinedVariables());
  
-      // make this a regex search/match so ${getTextLine:2} works when used in getInput
-      
-      const failed = matches.find(aMatch => {
-        if (aMatch.startsWith("${getTextLine:")) {
-          return !aMatch.match(/\$\{getTextLine:\d+\}/);
-        }
-        return !vars.includes(aMatch);
-      });
+      const failed = matches.find(aMatch => !vars.includes(aMatch));
       
       if (failed) message = `${failed} is not one of the variables`;
       else message = undefined;
