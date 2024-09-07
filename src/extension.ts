@@ -6,7 +6,9 @@ import { build } from './blocks';
 
 export async function activate(context: vscode.ExtensionContext) {
   
+  // can't use this here, something (Object.assign?) is globally changing the settings each run
   // let settings = await getSettings();
+  
   await completions.makeKeybindingsCompletionProvider(context);
   await completions.makeSettingsCompletionProvider(context);
   
@@ -17,15 +19,17 @@ export async function activate(context: vscode.ExtensionContext) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
         
-    let matchIndex = 0;
+    let matchIndex = 0;   // may be used in the future to support looping through multiple selections
     
-    if (typeof args.subjects === 'string') args.subjects = [args.subjects];
+      // do nothing regardless of settings.selectCurrentLine if there is a non-empty selection on a single line
+    if (!editor.selection.isEmpty && editor.selection.isSingleLine) {}
     
-    if (editor.selection.isSingleLine && settings.selectCurrentLine === true) {      // previous selection, if any, is not multiline
+    else if (editor.selection.isSingleLine && settings.selectCurrentLine === true) {      // previous selection, if any, is not multiline
       const active = editor.selection.active;
       const lineLength = editor.document.lineAt(active.line).text.length;
       editor.selection = new vscode.Selection(new vscode.Position(active.line, 0), new vscode.Position(active.line, lineLength));
     }
+      
     else if (!editor.selection.isSingleLine && settings.selectCurrentLine === true) {      // previous selection, if any, is not multiline
       const active = editor.selection.active;
       const anchor = editor.selection.anchor;
@@ -43,15 +47,15 @@ export async function activate(context: vscode.ExtensionContext) {
     
     const snippet: vscode.SnippetString = await build(editor, combinedOptions, editor.selection, matchIndex);    
     await editor.insertSnippet(snippet, editor.selection);
-    
-    // matchIndex++;
-  });                    // end of comment-blocks.createBlock command
+  });
   
   context.subscriptions.push(disposable);
   
-  // vscode.workspace.onDidChangeConfiguration(async ev => {
+  // const onChangeConfigs = vscode.workspace.onDidChangeConfiguration(async ev => {
   //   if (ev.affectsConfiguration("commentBlocks.defaults")) settings = await getSettings();
   // });
+  
+  // context.subscriptions.push(onChangeConfigs);
 }
 
 export function deactivate() { }

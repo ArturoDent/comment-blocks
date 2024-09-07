@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as languageConfigs from './getLanguageConfig';
 import { getPlaceHolders, getPrompts } from './optionProperties';
 import * as variables from './variables';
+import * as resolve from './resolveVariables';
+
 
 
 /**
@@ -216,11 +218,12 @@ export async function replaceAsync2 (toResolve: string, regex: RegExp, asyncFn: 
   const matches = toResolve.match(regex);
  
   if (matches) {
-    //  const replacement = await resolve.resolveExtensionDefinedVariables(matches[0], args, caller);
-    // const replacement = await asyncFn(matches[0], selection, matchIndex, caller);
-    const replacement = await asyncFn(matches[0], caller, line);
+    let replacement;
+    
+    if (asyncFn === resolve.resolveSpecialVariables) replacement = await asyncFn(matches[0]);
+    else replacement = await asyncFn(matches[0], caller, line);
+    
     toResolve = toResolve.replace(matches[0], replacement);
-    // toResolve = await this.replaceAsync2(toResolve, regex, asyncFn, args, caller);
     toResolve = await replaceAsync2(toResolve, regex, asyncFn, selection, matchIndex, caller, line);
   }
  

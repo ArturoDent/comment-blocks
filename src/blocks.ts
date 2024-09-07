@@ -27,14 +27,21 @@ type CommentBlockSettings2 = {
  **/
 export async function build(editor: vscode.TextEditor, options: CommentBlockSettings, selection: vscode.Selection, matchIndex: number): Promise<vscode.SnippetString> {
 
+  if (typeof options.subjects === 'string') options.subjects = [options.subjects];
+  
   // may be a multiline ${selectedText} or ${CLIPBOARD} used in the subjects[]
   // _expandMultilines also calls _removeCommonLeadingWhiteSpace()
   
   const hasSelectedTextVariable = options.subjects.some(subject => subject.includes("${selectedText}"));
   const hasClipBoardVariable = options.subjects.some(subject => subject.includes("${CLIPBOARD}"));
   
-  if (hasSelectedTextVariable) await _expandMultilines(editor, options, "${selectedText}");  
-  if (hasClipBoardVariable) await _expandMultilines(editor, options, "${CLIPBOARD}");
+  // only do if multiline selection or clipboard
+  // if (hasSelectedTextVariable) await _expandMultilines(editor, options, "${selectedText}");  
+  if (hasSelectedTextVariable && !selection.isSingleLine) await _expandMultilines(editor, options, "${selectedText}");  
+  if (hasClipBoardVariable) {
+    const clipText = await vscode.env.clipboard.readText();
+    if(clipText.split(/\r?\n/).length > 1) await _expandMultilines(editor, options, "${CLIPBOARD}");
+  }
   
   let numberOfLines = options.subjects.length;  // reset numberOfLines if multilines above
   
@@ -50,13 +57,13 @@ export async function build(editor: vscode.TextEditor, options: CommentBlockSett
     for await (let option of Object.entries(options)) {
       
       if (option[0] === 'selectCurrentLine') continue;
-      // @ts-ignore
-      if (option[1][line].toString().search(specialVariable) !== -1) {  // typeof string
+      // was ignored
+      if ((option as unknown as string[])[1][line].toString().search(specialVariable) !== -1) {  // typeof string
         
+        // was ignored
+        var resolved = await resolve.resolveVariables((option as unknown as string[])[1][line], selection, matchIndex, line, option[0]);
         // @ts-ignore
-        var resolved = await resolve.resolveVariables(option[1][line], selection, matchIndex, line, option[0]);
-        // @ts-ignore
-        options[option[0]][line] = resolved === undefined ? '' : resolved;
+        (options as unknown as string[])[option[0]][line] = resolved === undefined ? '' : resolved;
       }
     };
   }
@@ -140,32 +147,47 @@ export async function build(editor: vscode.TextEditor, options: CommentBlockSett
  **/
 async function _expandMultilines(editor: vscode.TextEditor, options: CommentBlockSettings, caller: string): Promise<void> {
   
-  let splitText: string[] = [];
-  
+  let splitText: string[] = [];  
   let newArr: any[] = [];
   let inserted = 0;  // need to add the number of lines inserted to the index
   
-  if (caller === '${CLIPBOARD}') {
-    const clipText = await vscode.env.clipboard.readText();
-    splitText = clipText.split(/\r?\n/);
-  }
-  else if (caller === '${selectedText}') {
-    splitText = editor.document.getText(editor.selection).split(/\r?\n/);
-  }
+  // if (caller === '${CLIPBOARD}') {
+  //   const clipText = await vscode.env.clipboard.readText();
+  //   splitText = clipText.split(/\r?\n/);
+  // }
+  // else if (caller === '${selectedText}') {
+  //   splitText = editor.document.getText(editor.selection).split(/\r?\n/);
+  // }
     
-  splitText = _removeCommonLeadingWhiteSpace(splitText);  // do even if splitText.length = 1
+  // splitText = _removeCommonLeadingWhiteSpace(splitText);  // do even if splitText.length = 1
   
   // if an empty line is in splitText, make it = " " with a space (so it isn't padded straight across)
-  splitText = splitText.map(line => line || " ");
+  // splitText = splitText.map(line => line || " ");  
   
+    // if (subject.match(/\\U\$\{selectedText\}/g))   //  no access to 
+    // splitText = splitText.map(line => line.toLocaleUpperCase());  
   
   let index = 0;
+  
+  const pathGlobalRE = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<path>\\$\\{selectedText\\}|\\$\\{CLIPBOARD\\})`, 'g');
   
   for await (let subject of Object.values(options.subjects)) {
     
     if (subject.includes(caller)) {
       
-      splitText[0] = subject.replaceAll(caller, splitText[0]);
+      const match = subject.match(pathGlobalRE);  // should always be a match but typescript complains      
+      if (!match) return;  // so options.subjects unchanged
+      
+      // just resolve the \\U${selectedText} or \\L${CLIPBOARD} part of the subject
+      // don't care about the 0 arguments below as they don't impact selectedText/clipBoard resolution
+      let resolved = await resolve.resolveVariables(match[0], editor.selection, 0, 0, caller);
+      splitText = resolved.split(/\r?\n/);
+      splitText = _removeCommonLeadingWhiteSpace(splitText);  // do even if splitText.length = 1
+      splitText = splitText.map(line => line || " ");  
+      
+      // addd other text that may appear on the line like "my function: ${selectedText}"
+      // or "${thisFunction} \\U${selectedText}"   subject.match(/\\U\$\{selectedText\}/g)
+      splitText[0] = subject.replaceAll(match[0], splitText[0]);  
       
       newArr.push(...splitText);
       
@@ -225,8 +247,7 @@ function _removeCommonLeadingWhiteSpace(splitText: string[]): string[] {
       }
     });
     
-    const re = new RegExp(`(^\\s{${minimum}})`, "m");
-    
+    const re = new RegExp(`(^\\s{${minimum}})`, "m");    
     reducedSplitText = splitText.map(line => line.replace(re, ''));
     
     return reducedSplitText;
@@ -322,6 +343,7 @@ async function _setLengthAndFill(options: CommentBlockSettings, numberOfLines: n
 /**
  * Set all centered (or left or right) subjects to the length of the 
  * longest such subject by padding end with spaces - maintains indentation.
+ * Do this for each contiguous group of similarly justified subjects.
  * 
  * Side effect: updates options.subjects
  * 
@@ -337,111 +359,83 @@ function _equalizeSubjectLengths(options: CommentBlockSettings): void {
   if ((options.justify as string[]).some(justifyOption => justifyOption === "center")) justifies.push("center");
   if ((options.justify as string[]).some(justifyOption => justifyOption === "right"))  justifies.push("right");
   
-  const justifyGroups: [] = [];
-  
   for (const justify of justifies) {
     
-    let justifyGroup: [] = [];
+    const justifyGroups: [] = [];  // for each type of justify, all separate contiguous blocks of subjects
+    const justifyGroup: [] = [];   // one block of contiguous subjects for justification and padding by its longest subject
       
-    const commonJustifiedSubjects = Object.entries(options.subjects).filter(subject => {
-            
-      // for (let [index, subject] of Object.entries(options.subjects)) {
-      //   const lineNumber = parseInt(index);
-      //   console.log(subject);
-      // }
+    for (let subject of Object.entries(options.subjects)) {
       
-      const numSubjects = options.subjects.length;
+      const numSubjects = options.subjects.length;      
       const lineNumber = parseInt(subject[0]);
       
-      const nextSubject = options.subjects[lineNumber + 1];
-      const previousSubject = options.subjects[lineNumber - 1];
-      
-      
-      
+      const nextSubject = options.subjects[lineNumber + 1];     // may be undefined, that's OK
+      const previousSubject = options.subjects[lineNumber - 1]; // may be undefined, that's OK
       
       // filter lines by common justify first and exclude those with no subject = ""
       
       if (options.justify[lineNumber] === justify && subject[1].length) {
         
-        if (lineNumber === 0 && lineNumber + 1 < numSubjects) {
+        if (lineNumber === 0 && lineNumber + 1 < numSubjects) {   // first line
           
-          // const nextSubject = options.subjects[lineNumber + 1];
+          // next line is same justify and has a subject, i.e., not an empty line
+          // subjects that are within selectedText or CLIPBOARD have already had their empty lines set to " "
           if (options.justify[lineNumber + 1] === justify && nextSubject.length) {
             (justifyGroup as [string, string][]).push(subject);
-            return true;
           }
-          else return false;  // don't add to groupArray
         }
         
         else if (lineNumber >= 1) {
           
-          // const previousSubject = options.subjects[lineNumber - 1];
-          
           if (lineNumber + 1 < numSubjects) {   // so there is a next subject
-            // if (options.justify[lineNumber + 1] === justify && options.subjects[lineNumber + 1].length) {
             if (options.justify[lineNumber + 1] === justify && nextSubject.length) {
               (justifyGroup as [string, string][]).push(subject);
-              return true;
             }
+            // if not found on next line, look back at previous line
             else if (options.justify[lineNumber - 1] === justify && previousSubject.length) {
               (justifyGroup as [string, string][]).push(subject);
-              return true;
             }
-            // else {
-            //   justifyGroups.push(justifyGroup);
-            //   justifyGroup.length = 0;
-            //   return false;
-            // }
+
           }
           else {  // must be on last subject, so only look back
             if (options.justify[lineNumber - 1] === justify && previousSubject.length) {
               (justifyGroup as [string, string][]).push(subject);
-              return true;
+              if (justifyGroup.length) (justifyGroups as [string, string][]).push(Array.from(justifyGroup) as unknown as [string, string]);
             }
-            // else {
-            //   justifyGroups.push(justifyGroup);
-            //   justifyGroup.length = 0;
-              
-            //   return false;
-            // }
           }
         }
       }
-      // else return undefined;
-      else {
+      else {   // reached an empty line or different justify
         if (justifyGroup.length) (justifyGroups as [string, string][]).push(Array.from(justifyGroup) as unknown as [string, string]);
-        justifyGroup.length = 0;
-        return false;
+        justifyGroup.length = 0;  // reset
       }
-    });
-  
-    if (commonJustifiedSubjects.length) {  // should never get a length of one here because of above
-      
-      // any common whitespace at the beginning of each group (by justify) of subjects
-      // should have already been removed in  _expandMultilines() calling _removeCommonLeadingWhiteSpace()
-      
-      // loop through justifyGroups
+    };
     
-      let longestIndex = parseInt(commonJustifiedSubjects[0][0]);
-      let len = commonJustifiedSubjects[0][1].length;
+    // "group" will be an array of contiguous lines (same justify and not an empty line)
+    justifyGroups.forEach(group=> {
+      
+      // the first subject
+      let longestIndex = parseInt(group[0][0]);
+      let len = (group[0][1] as string).length;
+      
+      // get the longest line and its index for each contiguous block      
+      (group as []).forEach(subject => {
     
-      // get the longest subject in each justify category
-      commonJustifiedSubjects.forEach(subject => {
-        if (subject[1].length > len) {
-          len = subject[1].length;
+        if ((subject[1] as string).length > len) {
+          len = (subject[1] as string).length;
           longestIndex = parseInt(subject[0]);
         }
       });
-    
-      // set others to the longest length with space padding after
-      for (const subject of commonJustifiedSubjects) {
       
+      // set others to the longest length with space padding after
+      (group as []).forEach(subject => {
+
         const thisIndex = parseInt(subject[0]);
-        if (thisIndex === longestIndex) continue;
+        if (thisIndex === longestIndex) return;    // skip the already longest line
       
         // keeps releative indentation
-        options.subjects[thisIndex] = subject[1].padEnd(len, " ");  // just wow !!
-      }
-    }
+        options.subjects[thisIndex] = (subject[1] as string).padEnd(len, " ");  // just wow !!
+      });      
+    });
   }
 }

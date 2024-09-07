@@ -1,12 +1,25 @@
 /**
+ * Separate these so they can be resolved first (in resolveVariables.ts)
+ * so included variables like all those below will later be resolved.
+ * @returns {Array} - just the clipboard and selectedText variables
+ */
+export function getSpecialVariables () {
+
+  return [
+    "${CLIPBOARD}", "${selectedText}", "${TM_SELECTED_TEXT}"
+  ];
+}
+
+
+/**
  * @returns {Array} - all the available variables defined by this extension
  */
 export function getExtensionDefinedVariables() {
+  
   // ${default} is not visible to the user
   return ["${getTextLine:\\d+}", "${getInput}", "${default}", "${nextSymbol}", "${previousSymbol}",
     "${previousFunction}", "${nextFunction}", "${parentFunction}", "${thisFunction}"];
 }
-
 
 /**
  * @returns {Array} - all the available path variables
@@ -16,8 +29,8 @@ export function getPathVariables () {
   return [
     "${file}", "${relativeFile}", "${fileBasename}", "${fileBasenameNoExtension}", "${fileExtname}", "${fileDirname}",
     "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", 
-    "${selectedText}", "${pathSeparator}", "${/}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}",     
-    "${matchIndex}", "${matchNumber}", "${TM_SELECTED_TEXT}", 
+    "${pathSeparator}", "${/}", "${lineIndex}", "${lineNumber}",      
+    "${matchIndex}", "${matchNumber}",  
     "${TM_LINE_INDEX}", "${TM_LINE_NUMBER}", "${CURSOR_INDEX}", "${CURSOR_NUMBER}",
     "${TM_FILENAME}", "${TM_FILENAME_BASE}", "${TM_DIRECTORY}", "${TM_FILEPATH}",
     "${RELATIVE_FILEPATH}", "${WORKSPACE_NAME}", "${WORKSPACE_FOLDER}",

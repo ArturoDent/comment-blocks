@@ -1,7 +1,4 @@
 
-
-
-
 export function getPrompts(caller: string) {
   
   let prompts = {

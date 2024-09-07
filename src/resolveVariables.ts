@@ -44,29 +44,36 @@ export async function resolveVariables (resolve: string, selection: Selection, m
   
   let replaceValue = resolve;
   
-  const specialVariable = new RegExp('\\$\\{');
-  if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${'
+  const variable = new RegExp('\\$\\{');
+  if (replaceValue.search(variable) === -1) return replaceValue;  // doesn't contain '${'
 
   let resolved = replaceValue;
   let re;
   let groupNames: GroupNames;
   
   
+  // --------------------  special variables -------------------------------------------
+  
+  // have this first so any variables in ${selectedText} or ${CLIPBOARD} will get resolved below!
+  re = regexp.specialVariablesRE;
+
+  resolved = await utilities.replaceAsync2(resolved, re, resolveSpecialVariables, selection, matchIndex, caller, line);
+  // --------------------  special variables ----------------------------------------------
+  
   // --------------------  extension-defined variables -------------------------------------------
   
-  // have this first so any variables in ${getInput} will get resolved below!
+  // have this second so any variables in ${getInput} will get resolved below!
   // Including other extension - defined variables!!
   re = regexp.extensionGlobalRE;
 
   resolved = await utilities.replaceAsync2(resolved, re, resolveExtensionDefinedVariables, selection, matchIndex, caller, line);
   // --------------------  extension-defined variables ----------------------------------------------
   
-  
   // --------------------  path variables -----------------------------------------------------------
  
   re = regexp.pathGlobalRE;
   
-  // @ts-ignore
+  // @@@ts-ignore
   resolved = await utilities.replaceAsync(resolved, re, async function (match: any, p1: any, p2: any) {
     
     const variableToResolve = await _resolvePathVariables(match, selection, matchIndex, line);
@@ -77,7 +84,7 @@ export async function resolveVariables (resolve: string, selection: Selection, m
     
     if (!groupNames.pathCaseModifier) return variableToResolve;
     else return _applyCaseModifier(groupNames, variableToResolve);
-  });
+  }) as string;
   // --------------------  path variables -----------------------------------------------------------
   
   
@@ -85,7 +92,7 @@ export async function resolveVariables (resolve: string, selection: Selection, m
  
   re = regexp.snippetRE;
   
-  // @ts-ignore  
+  // @@@ts-ignore  
   resolved = await utilities.replaceAsync(resolved, re, async function (match: any, p1: any, p2: any) {
     const variableToResolve = await _resolveSnippetVariables(match, selection);
     groupNames = {
@@ -94,7 +101,7 @@ export async function resolveVariables (resolve: string, selection: Selection, m
     };
     if (!groupNames.pathCaseModifier) return variableToResolve;
     else return _applyCaseModifier(groupNames, variableToResolve);
-  });
+  }) as string;
   // --------------------  snippet variables -----------------------------------------------------------
 
   return resolved;
@@ -141,8 +148,6 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
       
       case "${getInput}": case "${ getInput }":
         let input = await utilities.getInput(caller, line);
-        // TODO: if input is an array (wrapped in a string) like "[1,2,3]" or "["hi", "there", "today"]"
-        // parseInt, if caller expects numerical value
         // input = eval("[" + input + "]");  or Function
         if (input || input === '')  // accept inputBox with nothing in it = ''
           resolved = input;
@@ -387,17 +392,6 @@ async function _resolvePathVariables (variableToResolve: string, selection: Sele
       if (wsFolder) resolved = path.basename(wsFolder.uri.path);
       break;
      
-    case "${selectedText}": case "${ selectedText }": case "${TM_SELECTED_TEXT}": case "${ TM_SELECTED_TEXT }":
-      if (!selection && window.activeTextEditor) selection = window.activeTextEditor.selection;
-      
-      if (selection.isEmpty) {
-        const wordRange = document?.getWordRangeAtPosition(selection.start);
-        if (wordRange) resolved = document?.getText(wordRange);
-        else resolved = '';
-      }
-      else resolved = document?.getText(selection);
-      break;
-     
     // pathSeparator = \
     case "${pathSeparator}": case "${ pathSeparator }": case "${\/}": case "${ \/ }":
       resolved = path.sep;
@@ -421,10 +415,7 @@ async function _resolvePathVariables (variableToResolve: string, selection: Sele
       resolved = String(selection?.active?.line + 1 + line);
       break;
 
-    // snippet only
-    case "${CLIPBOARD}": case "${ CLIPBOARD }":
-      resolved = await env.clipboard.readText();    // need to make function async
-      break;
+
 
     default:
       break;
@@ -589,6 +580,75 @@ export async function resolveExtensionDefinedVariables(replaceValue: string, cal
    else return _applyCaseModifier(found.groups, resolved);
   }
 }
+
+/**
+ * Resolve variables defined by this extension and applyCaseModifier().
+ *
+ * @param {string} replaceValue
+ * @returns {Promise<string>} - the resolved string
+ */
+export async function resolveSpecialVariables(replaceValue: string) {
+
+  if (replaceValue === "") return replaceValue;  
+  let re = regexp.pathCaseModifierRE;
+
+  if (replaceValue !== null) {
+   
+   let resolved = await _resolveSpecialVariables(replaceValue);
+   const found = replaceValue.match(re);
+   
+   if (!found || !found.groups?.caseModifier) return resolved;
+   else return _applyCaseModifier(found.groups, resolved);
+  }
+}
+
+
+/**
+ * Resolve the special variables, like ${nextFunction}, etc.
+ * 
+ * @param {string} variableToResolve - the 
+ * @returns {Promise<strin|numberg>} - the resolved extension-defined variable
+ */
+async function _resolveSpecialVariables (variableToResolve: string) {
+  
+  const editor = window.activeTextEditor;
+  if (!editor) return variableToResolve;
+  const document = window.activeTextEditor?.document;
+  if (!document) return variableToResolve;
+  
+  if (typeof variableToResolve !== 'string') return variableToResolve;
+  
+  let resolved = variableToResolve;
+  
+  const namedGroups = resolved?.match(regexp.pathCaseModifierRE)?.groups;
+  if (!namedGroups) return variableToResolve;
+
+  switch (namedGroups.vars) {
+  
+    // snippet only
+    case "${CLIPBOARD}": case "${ CLIPBOARD }":
+      resolved = await env.clipboard.readText();    // need to make function async
+      break;
+    
+    case "${selectedText}": case "${ selectedText }": case "${TM_SELECTED_TEXT}": case "${ TM_SELECTED_TEXT }":
+      let selection = editor.selection;
+      
+      // if (!selection && window.activeTextEditor) selection = window.activeTextEditor.selection;
+      
+      if (selection.isEmpty) {
+        const wordRange = document?.getWordRangeAtPosition(selection.start);
+        if (wordRange) resolved = document?.getText(wordRange);
+        else resolved = '';
+      }
+      else resolved = document?.getText(selection);
+      break;
+    
+    default:
+      break;
+  }
+
+  return resolved;
+};
 
 
 /**
