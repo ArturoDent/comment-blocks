@@ -21,23 +21,41 @@ export async function getSettings(): Promise<CommentBlockSettings> {
   const config: vscode.WorkspaceConfiguration | undefined = vscode.workspace.getConfiguration(EXTENSION_NAME);
   const defaults: vscode.WorkspaceConfiguration | undefined = await config.get('defaults');
   
-  let endTextDefault = (defaults?.startText === "${LINE_COMMENT}") ? "${LINE_COMMENT}" : "${BLOCK_COMMENT_END}";
-
   return {   // return any settings or their default values
     
-    selectCurrentLine: (defaults?.selectCurrentLine === false) ? false : true,
+    selectCurrentLine: defaults?.selectCurrentLine,
     
-    lineLength: defaults?.lineLength               || 80,
+    lineLength: defaults?.lineLength,
     
-    startText: defaults?.startText                 || '${BLOCK_COMMENT_START}',
-    endText: defaults?.endText                     || endTextDefault,
+    startText: defaults?.startText,
+    endText: defaults?.endText,
     
-    justify: defaults?.justify                     || 'center',
+    justify: defaults?.justify,
     
-    gapLeft: defaults?.gapLeft                     ||  3,
-    gapRight: defaults?.gapRight                   ||  3,
+    gapLeft: defaults?.gapLeft,
+    gapRight: defaults?.gapRight,
     
-    padLines: defaults?.padLines                   ||  '-',
-    subjects: defaults?.subjects                   ||  ["", "${selectedText}", ""]
+    padLines: defaults?.padLines,
+    subjects: defaults?.subjects
+  };
+}
+
+/**
+ * Get the default values for each option
+ *
+ * @export
+ **/
+export function getDefaults() {
+  
+  return {
+    selectCurrentLine: true,    
+    lineLength: 80,    
+    startText: '${BLOCK_COMMENT_START}',
+    // endText: '${BLOCK_COMMENT_END}',   // not used    
+    justify: 'center',    
+    gapLeft: 3,
+    gapRight: 3,    
+    padLines: '-',
+    subjects: ["", "${selectedText}", ""]
   };
 }

@@ -64,6 +64,11 @@
                 }
               ]
             },
+            "selectCurrentLine": {
+              "description": "Select all of the current line or all of partially selected multiple lines.",
+              "type": "boolean",
+              "default": true
+            },
             "lineLength": {
               "description": "Number of total characters in each line.",
               "$ref": "#/definitions/integers",

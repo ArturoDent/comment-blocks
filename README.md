@@ -60,18 +60,18 @@ There are many options and variables that can be used in creating these blocks.
 
 <div style="border: 1px solid; width:fit-content;">
 
-|  Option             |  Type                | Default                       |                                           |
-| ------------------- |----------------------|-------------------------------|-------------------------------------------|
-| `selectCurrentLine` | boolean              | `true`                        | Should the current line(s) be selected    |
-| `lineLength`        | integer or integer[] | 80                            | Each line can be a different length       |
-| `startText`         | string or string[]   | `${BLOCK_COMMENT_START}`      | Text at the beginning of each line        |
-| `endText`           | string or string[]   | `${BLOCK_COMMENT_END}`        | Text at the end of each line *            |
-| `justify`           | string or string[]   | `center`                      | Where to put the subjects on each line    |
-| `gapLeft`           | integer or integer[] | 3                             | Blank space to the left of the subject    |
-| `gapRight`          | integer or integer[] | 3                             | Blank space to the right of the subject   |
-| `padLines`          | string or string[]   | `-`  of length 1              | Character to be used to pad each line     |
-|                     |                      |                               |                                           |
-| `subjects`          | string or string[]   | `["", "${selectedText}", ""]` | The subject for each line                 |
+| Option            | Type               | Default                     |                                       |
+|-------------------|--------------------|-----------------------------|---------------------------------------|
+|`selectCurrentLine`|boolean             |`true`                       |Should the current line(s) be selected |
+|`lineLength`       |integer or integer[]|80                           |Each line can be a different length    |
+|`startText`        |string or string[]  |`${BLOCK_COMMENT_START}`     |Text at the beginning of each line     |
+|`endText`          |string or string[]  |`${BLOCK_COMMENT_END}`       |Text at the end of each line *         |
+|`justify`          |string or string[]  |`center`                     |Where to put the subjects on each line |
+|`gapLeft`          |integer or integer[]|3                            |Blank space to the left of the subject |
+|`gapRight`         |integer or integer[]|3                            |Blank space to the right of the subject|
+|`padLines`         |string or string[]  |`-`  of length 1             |Character to be used to pad each line  |
+|                   |                    |                             |                                       |
+|`subjects`         |string or string[]  |`["", "${selectedText}", ""]`|The subject for each line              |
 </div>
 <br/>
 
@@ -108,6 +108,8 @@ These options all have default values as indicated above.  But those defaults ca
 2. Each keybinding can set these options which will have precedence over the defaults.
 
 ## Setting
+
+Go to the [Comment Blocks setting](vscode://settings/commentBlocks.defaults) in your Settings UI..
 
 The setting is `Comment Blocks: Defaults`.  This can be found in the Settings UI but that will just direct you to `settings.json` for the actual editing:
 
@@ -255,7 +257,7 @@ There is a **precedence** to the options:
 
 <div style="border: 1px solid; width:fit-content;">
 
-|                                |  Snippet variable equivalent    |  |
+|                                |  Snippet equivalent             |  |
 |--------------------------------|---------------------------------|--|
 | [Launch/task Variables reference](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables) | [Snippet Variables reference](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_variables) |  |
 | `${selectedText}`              | `${TM_SELECTED_TEXT}`           |  |
@@ -311,17 +313,17 @@ There is a **precedence** to the options:
 
 <div style="border: 1px solid; width:fit-content;">
 
-|  Extension variables   | These are defined by this extension only                                     |
-|------------------------|------------------------------------------------------------------------------|
-| `${getInput}`          | Opens an input box to get the content, can be used multiple times            |
-|                        |                                                                              |
-| `${previousFunction}`  | The previous function name - somewhere above the cursor                      |
-| `${nextFunction}`      | The next function name - somewhere after the cursor                          |
-| `${parentFunction}`    | The function name of the parent (i.e., the outer) function                   |
-| `${thisFunction}`      | The function name of the current function, may be within an outer function   |
-|                        |                                                                              |
-| `${nextSymbol}`        | Next symbol name, may be a variable, function, etc. name                     |
-| `${previousSymbol}`    | Previous symbol name.  Symbol names are language-dependent                   |
+|  Extension variables   | These are defined by this extension only                               |
+|------------------------|------------------------------------------------------------------------|
+| `${getInput}`          | Opens an input box to get the content, can be used multiple times      |
+|                        |                                                                        |
+| `${previousFunction}`  | The previous function name - somewhere above the cursor                |
+| `${nextFunction}`      | The next function name - somewhere after the cursor                    |
+| `${parentFunction}`    | Function name of the parent (i.e., the outer) function                 |
+| `${thisFunction}`      | function name of the current function, may be within an outer function |
+|                        |                                                                        |
+| `${nextSymbol}`        | Next symbol name, may be a variable, function, etc. name               |
+| `${previousSymbol}`    | Previous symbol name.  Symbol names are language-dependent             |
 </div>
 </br>
 

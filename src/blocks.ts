@@ -11,7 +11,7 @@ type CommentBlockSettings2 = {
   gapLeft: number | Array<number>,
   gapRight: number | Array<number>,
   padLines: string | Array<string>,
-  subjects: Array<string>,
+  subjects: Array<string>
 };
 
 
@@ -91,7 +91,11 @@ export async function build(editor: vscode.TextEditor, options: CommentBlockSett
     startText = startText || "";
     endText = endText || "";
     padLine = padLine || "";
-    justify = justify || "";    
+    justify = justify || "";
+    
+    // if startText "${LINE_COMMENT}"
+    // endText = (startText?.startsWith("${LINE_COMMENT}")) ? "${LINE_COMMENT}" : "${BLOCK_COMMENT_END}";
+    
     
     let subjectLength = 0;
     // don't trim
