@@ -194,6 +194,16 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
       break;
     
     case "${nextFunction}": case "${ nextFunction }":
+      
+    // const ch: Array<DocumentSymbol> = await commands.executeCommand('vscode.prepareCallHierarchy',
+    //   document.uri, editor.selection.active);
+      
+    //   const incoming: Array<DocumentSymbol> = await commands.executeCommand('vscode.provideIncomingCalls',
+    //     ch[0]);
+      
+    //     const outgoing: Array<DocumentSymbol> = await commands.executeCommand('vscode.provideOutgoingCalls',
+    //       ch[0]);
+      
       const symbols3: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
         document.uri);
       

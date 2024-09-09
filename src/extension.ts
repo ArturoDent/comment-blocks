@@ -13,7 +13,7 @@ export async function activate(context: vscode.ExtensionContext) {
   await completions.makeSettingsCompletionProvider(context);
   
 	let disposable = vscode.commands.registerCommand('comment-blocks.createBlock', async (args) => {
-  
+      
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
     
@@ -45,7 +45,8 @@ export async function activate(context: vscode.ExtensionContext) {
     // args and settings combined with args having precedence
     const combinedOptions = await Object.assign(settings, args);
     
-    const selectCurrentLine = combinedOptions.selectCurrentLine;    
+    const selectCurrentLine = combinedOptions.selectCurrentLine;  
+    // const selectCurrentLine = false;    
         
     let matchIndex = 0;   // may be used in the future to support looping through multiple selections
     
