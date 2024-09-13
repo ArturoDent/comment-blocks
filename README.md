@@ -7,6 +7,7 @@ Create comment blocks like
  *     test2.js : funcCC
  *     Modification Date: 2024:08:24  20:08
  */
+function funcCC() {}   // in file test2.js
 ```
 
 ---------------------------
@@ -15,13 +16,30 @@ Create comment blocks like
 ////////////////////////////////////////////////////////////////////////////////
 //                             some_function_next                             //
 ////////////////////////////////////////////////////////////////////////////////
+function some_function_next() {}
 ```
 
 ```javascript
 //---------------------------     someFuncName     ---------------------------//
+
+function some_function_next() {}   // doesn't have to be on prior line
 ```
 
 ---------------------
+
+```javascript
+// ------------------------------   howdy ()   ---------------------------------
+// Incoming calls: func_AA:52, func_CC:40, func_DD:62   ------------------------
+// Outgoing calls: func_EE, func_FF            ---------------------------------
+// -----------------------------------------------------------------------------
+function howdy() {
+  func_EE();
+  func_FF();
+  console.log();    // filtered out/won't appear in the result
+}
+```
+
+-------------------------
 
 ```javascript
 /*
@@ -58,7 +76,7 @@ These examples are explained below.
 
 There are many options and variables that can be used in creating these blocks.
 
-<div style="border: 1px solid; width:fit-content;">
+<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
 
 | Option            | Type               | Default                     |                                       |
 |-------------------|--------------------|-----------------------------|---------------------------------------|
@@ -75,7 +93,7 @@ There are many options and variables that can be used in creating these blocks.
 </div>
 <br/>
 
-* If you set the default for `startText` to `${LINE_COMMENT}` (in your settings) the default for `endText` will also be set to `${LINE_COMMENT}`.
+* If you set the default for `startText` to `${LINE_COMMENT}` (in your settings) the default for `endText` will also be set to `${LINE_COMMENT}` unless you specifically set some `endText` value.
 
 * `selectCurrentLine` applies to the current line and all partially selected lines in a multiline selection.  The selection will be expanded to include all of the lines - so from character 0 on the first line of the selection to the end of the last selected line.
 
@@ -109,7 +127,7 @@ These options all have default values as indicated above.  But those defaults ca
 
 ## Setting
 
-Go to the [Comment Blocks setting](vscode://settings/commentBlocks.defaults) in your Settings UI..
+Go to the [Comment Blocks setting](vscode://settings/commentBlocks.defaults) in your Settings UI.
 
 The setting is `Comment Blocks: Defaults`.  This can be found in the Settings UI but that will just direct you to `settings.json` for the actual editing:
 
@@ -118,12 +136,25 @@ The setting is `Comment Blocks: Defaults`.  This can be found in the Settings UI
 
 "commentBlocks.defaults": {  
   "selectCurrentLine": false,     // you should get intellisense for all options and available variables
-  "justify": "left",
+  "justify": "right",
   "endText": "*${LINE_COMMENT}",
 }
 ```
 
-Whatever defaults you set in this setting can be overridden by a keybinding that runs the `comment-blocks.createBlock` command.
+You can also set language-specific defaults by doing this in your settings:
+
+```jsonc
+ "[javascript][typescript]": {
+    "commentBlocks.defaults": {
+      "justify": "left",
+      "selectCurrentLine": false
+    }
+  }
+```
+
+With the above, javascript and typescript files would default to `"justify": "left"`.  Language-specific defaults will take precedence over the generic defaults.  Frequently, using variables like `${LINE_COMMENT}`, `${BLOCK_COMMENT_START}` and `${BLOCK_COMMENT_END}` will reduce the need for language-specific defaults as they are already resolved by the file's language.
+
+Whatever defaults you set in a `"commentBlocks.defaults"` setting (generic or per language) will be overridden by a keybinding that runs the `comment-blocks.createBlock` command.
 
 ## Keybindings
 
@@ -255,7 +286,7 @@ There is a **precedence** to the options:
 
 ## Variables
 
-<div style="border: 1px solid; width:fit-content;">
+<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
 
 |                                |  Snippet equivalent             |  |
 |--------------------------------|---------------------------------|--|
@@ -283,7 +314,7 @@ There is a **precedence** to the options:
 </div>
 </br>
 
-<div style="border: 1px solid; width:fit-content;">
+<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
 
 |  Other Snippet variables      |  |
 |-------------------------------|--|
@@ -311,22 +342,6 @@ There is a **precedence** to the options:
 </div>
 </br>
 
-<div style="border: 1px solid; width:fit-content;">
-
-|  Extension variables   | These are defined by this extension only                               |
-|------------------------|------------------------------------------------------------------------|
-| `${getInput}`          | Opens an input box to get the content, can be used multiple times      |
-|                        |                                                                        |
-| `${previousFunction}`  | The previous function name - somewhere above the cursor                |
-| `${nextFunction}`      | The next function name - somewhere after the cursor                    |
-| `${parentFunction}`    | Function name of the parent (i.e., the outer) function                 |
-| `${thisFunction}`      | function name of the current function, may be within an outer function |
-|                        |                                                                        |
-| `${nextSymbol}`        | Next symbol name, may be a variable, function, etc. name               |
-| `${previousSymbol}`    | Previous symbol name.  Symbol names are language-dependent             |
-</div>
-</br>
-
 You can use the above launch/task-type variables and snippet variables.  Many of these produce the same output but may have different names.  It doesn't matter which you use.
 
 One reason why you might want to occaisonally use the snippet form of a variable is to make it into a transform, for example:
@@ -342,6 +357,75 @@ One reason why you might want to occaisonally use the snippet form of a variable
 ```
 
 This would get and keep only that part of the selected text after a `-`.  You can do any snippet transform like this that you could in a regular snippet.  Just be aware that the actual transform is done by vscode upon insertion of the text, thus this extension cannot account for its length and you would have to adjust for the padding yourself afterwards.
+
+-----------------------
+
+<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
+
+|  Extension variables   | These are defined by this extension only                               |
+|------------------------|------------------------------------------------------------------------|
+| `${getInput}`          | Opens an input box to get the content, can be used multiple times      |
+|                        |                                                                        |
+| `${previousFunction}`  | The previous function name - somewhere above the cursor                |
+| `${nextFunction}`      | The next function name - somewhere after the cursor                    |
+| `${parentFunction}`    | Function name of the parent (i.e., the outer) function                 |
+| `${thisFunction}`      | function name of the current function, may be within an outer function |
+|                        |                                                                        |
+| `${incomingCalls}`     | Incoming function calls to the next function, with line numbers        |
+| `${outgoingCalls}`     | Outgoing function calls to the next function                           |
+|                        |                                                                        |
+| `${nextSymbol}`        | Next symbol name, may be a variable, function, etc. name               |
+| `${previousSymbol}`    | Previous symbol name.  Symbol names are language-dependent             |
+</div>
+</br>
+
+`${incomingCalls}` represents the names of functions that call the next function.  
+`${outgoingCalls}` all functions that are called within the next function (console.log calls are filtered out).
+
+Incoming calls show the function name and the line number where that call occurs (for example `someFunction:52`).  Outgoing calls do not show line numbers.  Of course, the line numbers are not updated dynamically if you make changes to yur code, so you should re-run your Block Comment keybinding to update the calls and line numbers.
+
+* The language used must provide the call hierarchy information - not all do.  If you right-click on a function name and the option `Show Call Hierarchy` shows nothing in the viewlet when clicked then these options will not be able to show incoming or outgoing calls for functions.
+
+Here is an example using these two variables:
+
+```jsonc
+{
+  "key": "alt+b",
+  "command": "comment-blocks.createBlock",
+  "args": {
+
+    "justify":["center", "left"],     // center the first line, left-justify the rest
+    "startText": "${LINE_COMMENT} ",  // note the space after the comment characters
+    "endText": "",
+    
+    "subjects": [
+      "${nextFunction} ()",                     // center the next function name ()
+      "Incoming calls: ${incomingCalls}",       // will be left
+      "Outgoing calls: ${outgoingCalls}",       // will be left
+      ""
+    ],
+      
+    "padLines": "-",
+    "gapLeft": [3, 0],  // first line gets a gapLeft of 3, the rest 0
+  }
+}
+```
+
+produces the below when called on the line before the function howdy():
+
+```javascript
+// ------------------------------   howdy ()   ---------------------------------
+// Incoming calls: func_AA:52, func_CC:40      ---------------------------------
+// Outgoing calls: func_EE, func_FF            ---------------------------------
+// -----------------------------------------------------------------------------
+function howdy() {
+  func_EE();
+  func_FF();
+  console.log();      // will be filtered out so it won't appear in the result
+}
+```
+
+howdy() calls func_EE and func_FF, and howdy() is called within the functions func_AA and func_CC.
 
 ### `${getInput}`
 
@@ -722,9 +806,12 @@ Only the **primary** selection is used and **REPLACED**.  That is the first one 
 * Check `defaults` for bad values?
 * Improve undefined `subjects` handling.
 * Enable case modifying of `${CLIPBOARD}` or `${selectedText}` with included variables.
-* Support pascalCase, camelCase, and snakeCase.
+* Support pascalCase, camelCase, and snakeCase (with \\P, \\C, \\S).
 * Handle content that exceeds the `lineLength`.
 * Understand what is writing to settings on prior run.  Not a problem but want to know.
-* Consider moving `${getInput}` abd `${default}` up to `getSpecialVariables()`.
+* Consider moving `${getInput}` and `${default}` up to `getSpecialVariables()`.
 
 ## Release Notes
+
+0.3.0 Added `${incomingCalls}` and `${outgoingCalls}`  
+&emsp;&emsp; Enabled lanuage-specific settings.  

@@ -1,4 +1,7 @@
-import { window, workspace, env, commands, Selection, DocumentSymbol, SymbolKind } from 'vscode';
+import {
+  window, workspace, env, commands, Selection, Range,
+  DocumentSymbol, SymbolKind, CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall
+} from 'vscode';
 
 import * as regexp from './regex';
 import * as path from 'path';        
@@ -195,15 +198,6 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
     
     case "${nextFunction}": case "${ nextFunction }":
       
-    // const ch: Array<DocumentSymbol> = await commands.executeCommand('vscode.prepareCallHierarchy',
-    //   document.uri, editor.selection.active);
-      
-    //   const incoming: Array<DocumentSymbol> = await commands.executeCommand('vscode.provideIncomingCalls',
-    //     ch[0]);
-      
-    //     const outgoing: Array<DocumentSymbol> = await commands.executeCommand('vscode.provideOutgoingCalls',
-    //       ch[0]);
-      
       const symbols3: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
         document.uri);
       
@@ -216,6 +210,86 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
         else resolved = '';
       }
       else resolved = '';
+      break;
+    
+    case "${incomingCalls}": case "${ incomingCalls }": case "${outgoingCalls}": case "${ outgoingCalls }":
+      
+      let incoming: boolean;
+      
+      if (resolved === "${incomingCalls}") incoming = true;
+      else incoming = false;
+    
+      let nextFunctionRange: Range|undefined = undefined;
+    
+      const symbols33: Array<DocumentSymbol> = await commands.executeCommand('vscode.executeDocumentSymbolProvider',
+        document.uri);
+      
+      if (symbols33) {
+        const nextFunction = Object.values(symbols33).find(symbol => {
+          return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(editor.selection.active);
+        });
+        if (nextFunction) nextFunctionRange = nextFunction.selectionRange;  // next function range
+        else resolved = '';
+      }
+      else resolved = '';
+    
+      if (nextFunctionRange) {
+        
+        const callHierarchy: Array<CallHierarchyItem> = await commands.executeCommand('vscode.prepareCallHierarchy',
+          document.uri, nextFunctionRange.start);
+        
+        if (callHierarchy.length) {
+        
+          if (incoming) {
+        
+            let incoming: Array<CallHierarchyIncomingCall> = await commands.executeCommand('vscode.provideIncomingCalls',
+              callHierarchy[0]);
+        
+            if (incoming) {
+              let incomingList = [];
+              for (const call of incoming) {
+                // make the line number clickable?  a linkProvider?
+                
+                const rangeSet: Set<number> = new Set();
+                
+                for (const range of call.fromRanges) {
+                  // if same line, don't repeat so use a Set
+                  rangeSet.add(range.start.line + 1);  // +1 because range.start is 0-based
+                }
+                
+                const lineNumbers = [...rangeSet].map(line => line.toString()).join(',');  // 43,52
+                incomingList.push(call.from.name + ':' + lineNumbers);
+              }
+              resolved = incomingList.join(', ');  // if no incomingList?
+            }
+            else resolved = "no incoming calls";
+          }
+          else if (!incoming) {
+        
+            let outgoing: Array<CallHierarchyOutgoingCall> = await commands.executeCommand('vscode.provideOutgoingCalls',
+              callHierarchy[0]);
+          
+            if (outgoing) {
+              let outgoingList = [];
+              for (const call of outgoing) {
+                
+                // filter out calls to functions not part of the workspace, SymbolKind.Function takes care of most of them
+                // parseInt is SymbolKind.Function though, so test if in workspace
+                
+                if (call.to.kind === SymbolKind.Function && workspace.getWorkspaceFolder(call.to.uri))  // in any workspace, this appears to be sufficient
+                  outgoingList.push(call.to.name);
+              }
+              // handle a long list?, use startText, but how to modify subjects
+              resolved = outgoingList.join(', ');  // if no outgoingList?
+              
+              // if (outGoingCalls.indent) 
+              // resolved = outgoingList.join('\n${LINE_COMMENT}\t\t\t\t\t');  // if no outgoingList?
+            }
+            else resolved = "no outgoing calls";
+          }
+        }
+        else resolved = "no call hierarchy available";
+      }
       break;
     
     case "${parentFunction}": case "${ parentFunction }":

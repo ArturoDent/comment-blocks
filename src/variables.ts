@@ -17,7 +17,7 @@ export function getSpecialVariables () {
 export function getExtensionDefinedVariables() {
   
   // ${default} is not visible to the user
-  return ["${getInput}", "${default}", "${nextSymbol}", "${previousSymbol}",
+  return ["${getInput}", "${default}", "${nextSymbol}", "${previousSymbol}", "${incomingCalls}", "${outgoingCalls}",
     "${previousFunction}", "${nextFunction}", "${parentFunction}", "${thisFunction}"];
 }
 

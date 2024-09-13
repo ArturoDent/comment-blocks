@@ -11,7 +11,7 @@
   "funding": {
     "url": "https://www.buymeacoffee.com/ArturoDent"
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
   "preview": true,
   "engines": {
     "vscode": "^1.46.0"
@@ -59,13 +59,13 @@
 
             "markdownDescription": "Defaults to be used unless overridden in keybindings.",
             "type": "object",
-            "scope": "resource",
+            "scope": "language-overridable",
+            
             "additionalProperties": false,
             "properties": {
               "selectCurrentLine": {
                 "order": 0,
                 "description": "Should the current line automatically be selected.",
-                "scope": "resource",
                 "type": "boolean",
                 "default": true
               },

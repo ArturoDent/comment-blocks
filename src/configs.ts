@@ -16,12 +16,12 @@ export type CommentBlockSettings = {
 };
 
 
-export async function getSettings(): Promise<CommentBlockSettings> {
-
-  const config: vscode.WorkspaceConfiguration | undefined = vscode.workspace.getConfiguration(EXTENSION_NAME);
+export async function getSettings(doc: vscode.TextDocument): Promise<CommentBlockSettings> {
+  
+  const config: vscode.WorkspaceConfiguration | undefined = vscode.workspace.getConfiguration(EXTENSION_NAME,  {languageId: doc.languageId, uri: doc.uri});
   const defaults: vscode.WorkspaceConfiguration | undefined = await config.get('defaults');
   
-  return {   // return any settings or their default values
+  return {
     
     selectCurrentLine: defaults?.selectCurrentLine,
     
@@ -45,8 +45,7 @@ export async function getSettings(): Promise<CommentBlockSettings> {
  *
  * @export
  **/
-export function getDefaults() {
-  
+export function getDefaults() {  
   return {
     selectCurrentLine: true,    
     lineLength: 80,    

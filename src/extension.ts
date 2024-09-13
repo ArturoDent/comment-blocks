@@ -8,16 +8,16 @@ export async function activate(context: vscode.ExtensionContext) {
   
   // can't use this here, something (Object.assign?) is globally changing the settings each run
   // let settings = await getSettings();
-  
   await completions.makeKeybindingsCompletionProvider(context);
   await completions.makeSettingsCompletionProvider(context);
   
 	let disposable = vscode.commands.registerCommand('comment-blocks.createBlock', async (args) => {
       
     const editor = vscode.window.activeTextEditor;
-    if (!editor) return;
+    const document = editor?.document;
+    if (!editor || !document) return;
     
-    let settings = await getSettings();
+    let settings = await getSettings(document);
     
     let { startText, endText } = settings;  // so from the 'defaults' setting
     
@@ -44,13 +44,11 @@ export async function activate(context: vscode.ExtensionContext) {
     
     // args and settings combined with args having precedence
     const combinedOptions = await Object.assign(settings, args);
-    
-    const selectCurrentLine = combinedOptions.selectCurrentLine;  
-    // const selectCurrentLine = false;    
+    const selectCurrentLine = combinedOptions.selectCurrentLine;
         
     let matchIndex = 0;   // may be used in the future to support looping through multiple selections
     
-      // do nothing regardless of settings.selectCurrentLine if there is a non-empty selection on a single line
+    // do nothing regardless of settings.selectCurrentLine if there is a non-empty selection on a single line
     if (!editor.selection.isEmpty && editor.selection.isSingleLine) {}
     
     else if (editor.selection.isSingleLine && selectCurrentLine === true) {      // previous selection, if any, is not multiline

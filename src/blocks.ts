@@ -25,6 +25,10 @@ type CommentBlockSettings2 = {
  * @param {number} matchIndex
  * @returns {Promise<vscode.SnippetString>}
  **/
+// ----------------------------------------   build ()   -------------------------------------------
+// Caller : activate                                                                          ------
+// Calls  : _expandMultilines, _setLengthAndFill, resolveVariables, _equalizeSubjectLengths   ------
+// -------------------------------------------------------------------------------------------------
 export async function build(editor: vscode.TextEditor, options: CommentBlockSettings, selection: vscode.Selection, matchIndex: number): Promise<vscode.SnippetString> {
 
   if (typeof options.subjects === 'string') options.subjects = [options.subjects];
@@ -36,7 +40,6 @@ export async function build(editor: vscode.TextEditor, options: CommentBlockSett
   const hasClipBoardVariable = options.subjects.some(subject => subject.includes("${CLIPBOARD}"));
   
   // only do if multiline selection or clipboard
-  // if (hasSelectedTextVariable) await _expandMultilines(editor, options, "${selectedText}");  
   if (hasSelectedTextVariable && !selection.isSingleLine) await _expandMultilines(editor, options, "${selectedText}");  
   if (hasClipBoardVariable) {
     const clipText = await vscode.env.clipboard.readText();
@@ -108,7 +111,7 @@ export async function build(editor: vscode.TextEditor, options: CommentBlockSett
       gapRight = 0;
     }
 
-    let padLeftLength: number;
+    let padLeftLength: number;   // lengths of the padding only, not the gaps left or right
     let padRightLength: number;
     
     if (justify === 'left') {
