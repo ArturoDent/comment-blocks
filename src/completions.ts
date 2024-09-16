@@ -3,12 +3,12 @@ import {
   CompletionItem, CompletionItemKind, MarkdownString
 } from 'vscode';
 
-import * as jsonc from 'jsonc-parser';  // for the language-specific comment characters
+import { Node, parseTree, getLocation, getNodeValue } from 'jsonc-parser';  // for the language-specific comment characters
 
 
 /**
  * Register a CompletionItemProvider for keybindings.json
- * @param {import("vscode").ExtensionContext} context
+ * @param context
  */
 export async function makeKeybindingsCompletionProvider (context: ExtensionContext) {
     const keybindingCompletionProvider = languages.registerCompletionItemProvider (
@@ -19,11 +19,11 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
           const linePrefix = document.lineAt(position).text.substring(0, position.character);
 
           let curLocation;
-							
-          const rootNode = jsonc.parseTree(document.getText());
-          
+
+          const rootNode = parseTree(document.getText());
+
           try {   // some kind of a parsing bug in jsonc-parser?
-            curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+            curLocation = getLocation(document.getText(), document.offsetAt(position));
           }
           catch (error) {
             // console.log(error)
@@ -31,32 +31,32 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
 
           if (!curLocation || curLocation.isAtPropertyKey) return undefined;
           if (curLocation.path[1] === '') return undefined;  // trying to get command/args/key/when of keybinding
-          
+
           let thisConfig;
           let nodeValue;
           let command;
-          
+
           if (rootNode) thisConfig = _findConfig(rootNode, document.offsetAt(position));
-          if (thisConfig) nodeValue = jsonc.getNodeValue(thisConfig);
+          if (thisConfig) nodeValue = getNodeValue(thisConfig);
           if (nodeValue) command = nodeValue.command;
 
           if (!command.startsWith("comment-blocks.createBlock")) return undefined;
-                   
+
           // curLocation.path = [26, 'args', 'replace', 1], isAtPropertyKey = false
-          
+
           // prevents completion at "reveal": "last"|,
           if (curLocation?.previousNode && linePrefix.endsWith(`"${ curLocation.previousNode.value }"`)) return undefined;
-          
+
           const stringProps = ["startText", "endText", "subjects"];
           const numbersProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
-        
-          if (stringProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
-            const argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[1] as string);
+
+          if (stringProps.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
+            const argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[2] as string);
             if (argCompletions) return argCompletions;
             else return undefined;
           }
-          else if (numbersProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
-            const argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[1] as string);
+          else if (numbersProps.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
+            const argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[2] as string);
             if (argCompletions) return argCompletions;
             else return undefined;
           }
@@ -73,8 +73,8 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
 
 
 /**
- * Register a CompletionItemProvider for keybindings.json
- * @param {import("vscode").ExtensionContext} context
+ * Register a CompletionItemProvider for settings.json
+ * @param context
  */
 export async function makeSettingsCompletionProvider (context: ExtensionContext) {
   const settingsCompletionProvider = languages.registerCompletionItemProvider (
@@ -85,11 +85,11 @@ export async function makeSettingsCompletionProvider (context: ExtensionContext)
         const linePrefix = document.lineAt(position).text.substring(0, position.character);
 
         let curLocation;
-            
-        const rootNode = jsonc.parseTree(document.getText());
-        
+
+        const rootNode = parseTree(document.getText());
+
         try {   // some kind of a parsing bug in jsonc-parser?
-          curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+          curLocation = getLocation(document.getText(), document.offsetAt(position));
         }
         catch (error) {
           // console.log(error)
@@ -97,24 +97,24 @@ export async function makeSettingsCompletionProvider (context: ExtensionContext)
 
         if (!curLocation || curLocation.isAtPropertyKey) return undefined;
         if (curLocation.path[1] === '') return undefined;  // trying to get command/args/key/when of keybinding
-        
+
         let thisConfig;
-        
+
         if (rootNode) thisConfig = _findConfig(rootNode, document.offsetAt(position));
         if (thisConfig?.children && thisConfig?.children[0]?.value  !== "commentBlocks.defaults") return undefined;
-                 
+
         const triggerCharacters: boolean = linePrefix.endsWith('$') || linePrefix.endsWith('${');
         if (!curLocation?.previousNode || !triggerCharacters) return undefined;
-        
+
         const stringProps = ["startText", "endText", "subjects"];  // these get string variable completions
         const numberProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
-        
-        if (stringProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
+
+        if (stringProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {
           const argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[1] as string);
           if (argCompletions) return argCompletions;
           else return undefined;
         }
-        else if (numberProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {            
+        else if (numberProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {
           const argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[1] as string);
           if (argCompletions) return argCompletions;
           else return undefined;
@@ -133,54 +133,56 @@ return settingsCompletionProvider;
 /**
  * Check linePrefix for completion trigger characters.
  * Get completions for string options.
- * 
- * @param   {string} linePrefix 
- * @param   {import("vscode").Position} position 
- * @param   {string} option - startText/endText/subjects
+ *
+ * @param   linePrefix
+ * @param   position
+ * @param   option - startText/endText/subjects
  * @returns {Array<CompletionItem>}
  */
-function _completeStringArgs(linePrefix: string, position: Position, option: string) {
-  
+function _completeStringArgs(linePrefix: string, position: Position, option: string): Array<CompletionItem>|undefined {
+
 // ----------  startText/endText/subjects  -----------
   if (option === 'startText' || option === 'endText' || option === 'subjects') {
     if (linePrefix.endsWith('${'))
       return [..._completeVariables(position, "${")];
-    
+
     else if (linePrefix.endsWith('$'))
       return [..._completeVariables(position, "$")];
   }
+  else return undefined;
 }
 
 
 /**
  * Get completions for number options.
  * Check linePrefix for completion trigger characters.
- * 
- * @param   {string} linePrefix 
- * @param   {import("vscode").Position} position 
- * @param   {string} option - lineLength/gapLeft/gapRight
- * @returns {Array<CompletionItem>}
+ *
+ * @param  linePrefix
+ * @param  position
+ * @param  option - lineLength/gapLeft/gapRight
+ * @returns
  */
-function _completeNumberArgs(linePrefix: string, position: Position, option: string) {
-  
+function _completeNumberArgs(linePrefix: string, position: Position, option: string): Array<CompletionItem> | undefined {
+
   // ----------  startText/endText/subjects  -----------
-    if (option === 'lineLength' || option === 'gapLeft' || option === 'gapRight') {
-      if (linePrefix.endsWith('${'))
-        return [..._completeNumberVariables(position, "${")];
-      
-      else if (linePrefix.endsWith('$'))
-        return [..._completeNumberVariables(position, "$")];
-    }
+  if (option === 'lineLength' || option === 'gapLeft' || option === 'gapRight') {
+    if (linePrefix.endsWith('${'))
+      return [..._completeNumberVariables(position, "${")];
+
+    else if (linePrefix.endsWith('$'))
+      return [..._completeNumberVariables(position, "$")];
   }
+  else return undefined;
+}
 
 /**
  * Get the keybinding where the cursor is located.
- * 
- * @param {jsonc.Node} rootNode - all parsed confogs in keybindings.json
- * @param {number} offset - of cursor position
- * @returns {jsonc.Node} - the node where the cursor is located
+ *
+ * @param rootNode - all parsed confogs in keybindings.json
+ * @param offset - of cursor position
+ * @returns the node where the cursor is located
  */
-function _findConfig(rootNode: jsonc.Node, offset: number)  {
+function _findConfig(rootNode: Node, offset: number): Node | undefined  {
 
   if (rootNode.children) {
     for (const node of rootNode.children) {
@@ -193,12 +195,12 @@ function _findConfig(rootNode: jsonc.Node, offset: number)  {
 
 /**
  * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
- * 
- * @param   {import("vscode").Position} position
- * @param   {string} trigger - triggered by '$' so include its range
- * @returns {Array<CompletionItem>}
+ *
+ * @param  position
+ * @param  trigger - triggered by '$' so include its range
+ * @returns
  */
-function _completeVariables(position: Position, trigger: string) {
+function _completeVariables(position: Position, trigger: string): Array<CompletionItem> {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
@@ -207,12 +209,12 @@ function _completeVariables(position: Position, trigger: string) {
 	else replaceRange = new Range(position, position);
 
   const completionItems = [
-    
+
     _makeValueCompletionItem("${selectedText}", replaceRange, "", "01", "The **first** selection in the current editor. Same as **${TM_SELECTED_TEXT}**."),
     _makeValueCompletionItem("${TM_SELECTED_TEXT}", replaceRange, "", "011", "The **first** selection in the current editor. Same as **${selectedText}**."),
-    
+
     _makeValueCompletionItem("${CLIPBOARD}", replaceRange, "", "02", "The clipboard contents."),
-    
+
     _makeValueCompletionItem("${getInput}", replaceRange, "", "03", "Open an input dialog to get this text."),
 		_makeValueCompletionItem("${thisFunction}", replaceRange, "", "04", "The current function name."),
 		_makeValueCompletionItem("${parentFunction}", replaceRange, "", "05", "The current parent function's name."),
@@ -220,7 +222,7 @@ function _completeVariables(position: Position, trigger: string) {
 		_makeValueCompletionItem("${previousFunction}", replaceRange, "", "07", "The previous function name above the cursor."),
     _makeValueCompletionItem("${nextSymbol}", replaceRange, "", "08", "The next symbol name below the cursor - may include variables, functions, etc."),
 		_makeValueCompletionItem("${previousSymbol}", replaceRange, "", "09", "The preevious symbol name above the cursor - may include variables, functions, etc"),
-    
+
 		_makeValueCompletionItem("${file}", replaceRange, "", "11", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor. Same as **${TM_FILEPATH}**."),
 		_makeValueCompletionItem("${TM_FILEPATH}", replaceRange, "", "111", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor. Same as **${file}**."),
 
@@ -229,7 +231,7 @@ function _completeVariables(position: Position, trigger: string) {
 
     _makeValueCompletionItem("${fileBasename}", replaceRange, "", "13", "The basename (`file.ext`) of the current editor. Same as **${TM_FILENAME}**."),
 		_makeValueCompletionItem("${TM_FILENAME}", replaceRange, "", "131", "The basename (`file.ext`) of the current editor. Same as **${fileBasename}**."),
-    
+
 		_makeValueCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "14", "The basename  (`file`) of the current editor without its extension. Same as **${TM_FILENAME_BASE}**."),
 		_makeValueCompletionItem("${TM_FILENAME_BASE}", replaceRange, "", "141", "The basename  (`file`) of the current editor without its extension. Same as **${fileBasenameNoExtension}**."),
 
@@ -248,38 +250,42 @@ function _completeVariables(position: Position, trigger: string) {
 
     _makeValueCompletionItem("${pathSeparator}", replaceRange, "", "21", "`/` on linux/macOS, `\\` on Windows."),
     _makeValueCompletionItem("${/}", replaceRange, "", "22", "`/` on linux/macOS, `\\` on Windows.  Same as ${pathSeparator}."),
-    
+
     _makeValueCompletionItem("${lineIndex}", replaceRange, "", "23", "The line number of the **first** cursor in the current editor, lines start at 0. Same as **${TM_LINE_INDEX}**."),
     _makeValueCompletionItem("${TM_LINE_INDEX}", replaceRange, "", "231", "The line number of the **first** cursor in the current editor, lines start at 0. Same as **${lineIndex}**."),
-    
+
 		_makeValueCompletionItem("${lineNumber}", replaceRange, "", "24", "The line number of the **first** cursor in the current editor, lines start at 1. Same as **${TM_LINE_NUMBER}**."),
 		_makeValueCompletionItem("${TM_LINE_NUMBER}", replaceRange, "", "241", "The line number of the **first** cursor in the current editor, lines start at 1. Same as **${lineNumber}**."),
 
     _makeValueCompletionItem("${matchIndex}", replaceRange, "", "25", "The 0-based find match index. Is this the first, second, etc. match? Same as **${CURSOR_INDEX}**."),
     _makeValueCompletionItem("${CURSOR_INDEX}", replaceRange, "", "251", "The 0-based find match index. Is this the first, second, etc. match? Same as **${matchIndex}**."),
-    
+
     _makeValueCompletionItem("${matchNumber}", replaceRange, "", "26", "The 1-based find match index. Is this the first, second, etc. match? Same as **${CURSOR_NUMBER}**."),
     _makeValueCompletionItem("${CURSOR_NUMBER}", replaceRange, "", "261", "The 0-based find match index. Is this the first, second, etc. match? Same as **${matchNumber}**."),
-	
+
     _makeValueCompletionItem("${TM_CURRENT_LINE}", replaceRange, "", "27", "The entire line the cursor is on."),
     _makeValueCompletionItem("${TM_CURRENT_WORD}", replaceRange, "", "28", "The word at the cursor."),
-    
-    _makeValueCompletionItem("${CURRENT_YEAR}", replaceRange, "", "28", "The current year"),
-    _makeValueCompletionItem("${CURRENT_YEAR_SHORT}", replaceRange, "", "28", "The current year's last two digits"),
-    _makeValueCompletionItem("${CURRENT_MONTH}", replaceRange, "", "28", "The month as two digits (example '02')."),
-    _makeValueCompletionItem("${CURRENT_MONTH_NAME}", replaceRange, "", "28", "The full name of the month (example 'July')."),
-    _makeValueCompletionItem("${CURRENT_MONTH_NAME_SHORT}", replaceRange, "", "28", "The short name of the month (example 'Jul')"),
-    _makeValueCompletionItem("${CURRENT_DATE}", replaceRange, "", "28", "The day of the month as two digits (example '08')."),
-    _makeValueCompletionItem("${CURRENT_DAY_NAME}", replaceRange, "", "28", "The name of day (example 'Monday')."),
-    _makeValueCompletionItem("${CURRENT_DAY_NAME_SHORT}", replaceRange, "", "28", "The short name of the day (example 'Mon')."),
-    _makeValueCompletionItem("${CURRENT_HOUR}", replaceRange, "", "28", "The current hour in 24-hour clock format."),
-    _makeValueCompletionItem("${CURRENT_MINUTE}", replaceRange, "", "28", "The current minute as two digits."),
-    _makeValueCompletionItem("${CURRENT_SECOND}", replaceRange, "", "28", "The current second as two digits."),
-    _makeValueCompletionItem("${CURRENT_SECONDS_UNIX}", replaceRange, "", "28", "The number of seconds since the Unix epoch."),
-    _makeValueCompletionItem("${CURRENT_TIMEZONE_OFFSET}", replaceRange, "", "28", "The timezone offset for the local time. In the form of '+7:00:00' or '-7:00:00'."),
-    
-    _makeValueCompletionItem("${RANDOM}", replaceRange, "", "28", "Six random Base-10 digits."),
-    _makeValueCompletionItem("${RANDOM_HEX}", replaceRange, "", "28", "Six random Base-16 digits."),  
+
+    _makeValueCompletionItem("${CURRENT_YEAR}", replaceRange, "", "29", "The current year"),
+    _makeValueCompletionItem("${CURRENT_YEAR_SHORT}", replaceRange, "", "30", "The current year's last two digits"),
+    _makeValueCompletionItem("${CURRENT_MONTH}", replaceRange, "", "31", "The month as two digits (example '02')."),
+    _makeValueCompletionItem("${CURRENT_MONTH_NAME}", replaceRange, "", "32", "The full name of the month (example 'July')."),
+    _makeValueCompletionItem("${CURRENT_MONTH_NAME_SHORT}", replaceRange, "", "33", "The short name of the month (example 'Jul')"),
+    _makeValueCompletionItem("${CURRENT_DATE}", replaceRange, "", "34", "The day of the month as two digits (example '08')."),
+    _makeValueCompletionItem("${CURRENT_DAY_NAME}", replaceRange, "", "35", "The name of day (example 'Monday')."),
+    _makeValueCompletionItem("${CURRENT_DAY_NAME_SHORT}", replaceRange, "", "36", "The short name of the day (example 'Mon')."),
+    _makeValueCompletionItem("${CURRENT_HOUR}", replaceRange, "", "37", "The current hour in 24-hour clock format."),
+    _makeValueCompletionItem("${CURRENT_MINUTE}", replaceRange, "", "38", "The current minute as two digits."),
+    _makeValueCompletionItem("${CURRENT_SECOND}", replaceRange, "", "39", "The current second as two digits."),
+    _makeValueCompletionItem("${CURRENT_SECONDS_UNIX}", replaceRange, "", "40", "The number of seconds since the Unix epoch."),
+    _makeValueCompletionItem("${CURRENT_TIMEZONE_OFFSET}", replaceRange, "", "41", "The timezone offset for the local time. In the form of '+7:00:00' or '-7:00:00'."),
+
+    _makeValueCompletionItem("${RANDOM}", replaceRange, "", "42", "Six random Base-10 digits."),
+    _makeValueCompletionItem("${RANDOM_HEX}", replaceRange, "", "43", "Six random Base-16 digits."),
+
+    _makeValueCompletionItem("${BLOCK_COMMENT_START}", replaceRange, "", "44", "Block comment start characters."),
+    _makeValueCompletionItem("${BLOCK_COMMENT_END}", replaceRange, "", "45", "Block comment end characters."),
+    _makeValueCompletionItem("${LINE_COMMENT}", replaceRange, "", "46", "Line comment start characters.")
   ];
 
 	return completionItems;
@@ -288,12 +294,12 @@ function _completeVariables(position: Position, trigger: string) {
 
 /**
  * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
- * 
- * @param   {import("vscode").Position} position
- * @param   {string} trigger - triggered by '$' so include its range
- * @returns {Array<CompletionItem>}
+ *
+ * @param   position
+ * @param   trigger - triggered by '$' so include its range
+ * @returns
  */
-function _completeNumberVariables(position: Position, trigger: string) {
+function _completeNumberVariables(position: Position, trigger: string): Array<CompletionItem> {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
@@ -302,13 +308,13 @@ function _completeNumberVariables(position: Position, trigger: string) {
 	else replaceRange = new Range(position, position);
 
   const completionItems = [
-    
+
     _makeValueCompletionItem("${selectedText}", replaceRange, "", "01", "The **first** selection in the current editor. Same as **${TM_SELECTED_TEXT}**."),
     _makeValueCompletionItem("${TM_SELECTED_TEXT}", replaceRange, "", "011", "The **first** selection in the current editor. Same as **${selectedText}**."),
-    
+
     _makeValueCompletionItem("${CLIPBOARD}", replaceRange, "", "02", "The clipboard contents."),
-    
-    _makeValueCompletionItem("${getInput}", replaceRange, "", "03", "Open an input dialog to get this text."), 
+
+    _makeValueCompletionItem("${getInput}", replaceRange, "", "03", "Open an input dialog to get this text."),
   ];
 
 	return completionItems;
@@ -317,26 +323,24 @@ function _completeNumberVariables(position: Position, trigger: string) {
 /**
  * From a string input make a CompletionItemKind.Property
  *
- * @param   {string} value
- * @param   {Range} replaceRange
- * @param   {string} defaultValue - default value for this option
- * @param   {string} sortText - sort order of item in completions
- * @param   {string} documentation - markdown description of each item
- * @param   {boolean} [invoked] - was this invoked by Ctrl+Space
- * @returns {CompletionItem} - CompletionItemKind.Text
+ * @param   value
+ * @param   replaceRange
+ * @param   defaultValue - default value for this option
+ * @param   sortText - sort order of item in completions
+ * @param   documentation - markdown description of each item
+ * @returns CompletionItemKind.Text
  */
-function _makeValueCompletionItem(value: string, replaceRange: Range, defaultValue: string, sortText: string, documentation: string) {
+function _makeValueCompletionItem(value: string, replaceRange: Range, defaultValue: string, sortText: string, documentation: string): CompletionItem {
 
   let item;
-  
+
   item = new CompletionItem(value, CompletionItemKind.Property);
   item.insertText = value;  // inserting a SnippetString is resolving variables like ${file}, etc.
   item.range = replaceRange;
-  
+
   if (defaultValue) item.detail = `default: ${ defaultValue }`;
 
   if (sortText) item.sortText = sortText;
-  // if (documentation) item.documentation = documentation;
   if (documentation) item.documentation = new MarkdownString(documentation);
 
 	return item;

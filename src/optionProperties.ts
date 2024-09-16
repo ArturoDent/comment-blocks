@@ -1,6 +1,12 @@
+/**
+ * Input Box prompt for each option (like startText)
+ *
+ * @export
+ * @param caller - the option asking for the input
+ * @returns
+ **/
+export function getPrompts(caller: string): string {
 
-export function getPrompts(caller: string) {
-  
   let prompts = {
     lineLength: "Enter an integer for 'lineLength'",
     startText: "Enter text for 'srartText'",
@@ -11,14 +17,20 @@ export function getPrompts(caller: string) {
     padLines: "Enter text for 'padLines'.  One character only",
     subjects: "Enter text for 'subjects'"
   };
-  
-  // return (prompts as any)[caller];
+
   return prompts[caller as keyof typeof prompts];
 }
 
 
-export function getPlaceHolders(caller: string) {
-  
+/**
+ * Input Box placeholder for each option (like startText)
+ *
+ * @export
+ * @param caller - the option asking for the input
+ * @returns
+ **/
+export function getPlaceHolders(caller: string): string {
+
   let placeHolders = {
     lineLength: "Example: 80",
     startText: "Example: //",
@@ -29,7 +41,6 @@ export function getPlaceHolders(caller: string) {
     padLines: "Examples: - or * or #",
     subjects: "Example: ${selectedText}"
   };
-  
-  // return (placeHolders as any)[caller];
+
   return placeHolders[caller as keyof typeof placeHolders];
 }

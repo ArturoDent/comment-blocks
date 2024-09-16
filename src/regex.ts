@@ -1,17 +1,22 @@
-import * as variables from './variables';
+import { getPathVariables, getSpecialVariables, getSnippetVariables, getExtensionDefinedVariables } from './variables';
 
-let vars = variables.getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-export const pathGlobalRE = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<path>${vars})`, 'g');
 
-vars = variables.getSpecialVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-export const specialVariablesRE = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<specialVars>${vars})`, 'g');
+const caseModifier = "(?<caseModifier>\\\\[UuLlTSsPCKk])?";
+const escapeVarsRE = new RegExp(/([\$][\{])([^\}]+)(})/g); // $ => \\$, { => \\{, } = \\}
+const replaceWithEscaped = "\\$1\\s*$2\\s*$3";
 
-vars = variables.getSnippetVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-export const snippetRE = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<snippetVars>${ vars })`, 'g');
+let vars = getPathVariables().join("|").replaceAll(escapeVarsRE, replaceWithEscaped);
+export const pathGlobalRE = new RegExp(`${caseModifier}(?<path>${vars})`, 'g');
 
-vars = variables.getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-export const extensionGlobalRE = new RegExp(`(?<caseModifier>\\\\[UuLl])?(?<extensionVars>${ vars })`, 'g');
-export const extensionNotGlobalRE = new RegExp(`(?<caseModifier>\\\\[UuLl])?(?<extensionVars>${ vars })`);
+vars = getSpecialVariables().join("|").replaceAll(escapeVarsRE, replaceWithEscaped);
+export const specialVariablesRE = new RegExp(`${caseModifier}(?<specialVars>${vars})`, 'g');
 
-// all in resolveVaraibles.js
-export const pathCaseModifierRE = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<vars>\\$\{\\s*.*?\\s*\\})");
+vars = getSnippetVariables().join("|").replaceAll(escapeVarsRE, replaceWithEscaped);
+export const snippetRE = new RegExp(`${caseModifier}(?<snippetVars>${ vars })`, 'g');
+
+vars = getExtensionDefinedVariables().join("|").replaceAll(escapeVarsRE, replaceWithEscaped);
+export const extensionGlobalRE = new RegExp(`${caseModifier}(?<extensionVars>${ vars })`, 'g');
+export const extensionNotGlobalRE = new RegExp(`${caseModifier}(?<extensionVars>${ vars })`);
+
+// all in resolveVariables.js
+export const caseModifierRE = new RegExp(`${caseModifier}(?<vars>\\$\{\\s*.*?\\s*\\})`);

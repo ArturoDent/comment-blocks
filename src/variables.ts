@@ -1,9 +1,9 @@
 /**
  * Separate these so they can be resolved first (in resolveVariables.ts)
  * so included variables like all those below will later be resolved.
- * @returns {Array} - just the clipboard and selectedText variables
+ * @returns just the clipboard and selectedText variables
  */
-export function getSpecialVariables () {
+export function getSpecialVariables (): string[] {
 
   return [
     "${CLIPBOARD}", "${selectedText}", "${TM_SELECTED_TEXT}"
@@ -12,25 +12,25 @@ export function getSpecialVariables () {
 
 
 /**
- * @returns {Array} - all the available variables defined by this extension
+ * @returns all the available variables defined by this extension
  */
-export function getExtensionDefinedVariables() {
-  
+export function getExtensionDefinedVariables(): string[] {
+
   // ${default} is not visible to the user
   return ["${getInput}", "${default}", "${nextSymbol}", "${previousSymbol}", "${incomingCalls}", "${outgoingCalls}",
     "${previousFunction}", "${nextFunction}", "${parentFunction}", "${thisFunction}"];
 }
 
 /**
- * @returns {Array} - all the available path variables
+ * @returns all the available path variables
  */
-export function getPathVariables () {
+export function getPathVariables (): string[] {
 
   return [
     "${file}", "${relativeFile}", "${fileBasename}", "${fileBasenameNoExtension}", "${fileExtname}", "${fileDirname}",
-    "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", 
-    "${pathSeparator}", "${/}", "${lineIndex}", "${lineNumber}",      
-    "${matchIndex}", "${matchNumber}",  
+    "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}",
+    "${pathSeparator}", "${/}", "${lineIndex}", "${lineNumber}",
+    "${matchIndex}", "${matchNumber}",
     "${TM_LINE_INDEX}", "${TM_LINE_NUMBER}", "${CURSOR_INDEX}", "${CURSOR_NUMBER}",
     "${TM_FILENAME}", "${TM_FILENAME_BASE}", "${TM_DIRECTORY}", "${TM_FILEPATH}",
     "${RELATIVE_FILEPATH}", "${WORKSPACE_NAME}", "${WORKSPACE_FOLDER}",
@@ -39,9 +39,9 @@ export function getPathVariables () {
 
 
 /**
- * @returns {Array} - some of the available snippet variables, some above in pathVariables
+ * @returns some of the available snippet variables, some above in pathVariables
  */
-export function getSnippetVariables () {
+export function getSnippetVariables (): string[] {
 
   return [
     "${TM_CURRENT_LINE}", "${TM_CURRENT_WORD}",

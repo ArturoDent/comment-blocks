@@ -1,14 +1,17 @@
 import { extensions } from 'vscode';
-import * as jsonc from 'jsonc-parser';
-import * as fs from 'fs';
-import * as path from 'path';
+import { LanguageComments } from './types';
+
+
+import { parse } from 'jsonc-parser';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 
 
 /**
  * Get an array of "languages", like plaintext, that don't have comment syntax
- * @returns {string[]} 
+ * @returns
  */
-function _getLanguagesToSkip  () {
+function _getLanguagesToSkip  (): string[] {
     return ['code-text-binary', 'bibtex', 'log', 'Log', 'search-result', 'plaintext', 'juliamarkdown', 'scminput', 'properties', 'csv', 'tsv', 'excel'];
 }
 
@@ -16,16 +19,16 @@ function _getLanguagesToSkip  () {
  * From the language configuration for the current file get the value of config argument
  * Usage: await languageConfigs.get(documentLanguageId, 'comments');
  *
- * @param {string} langID - the languageID of the desired language configuration
- * @param {string} config - the language configuration to get, e.g., 'comments.lineComment' or 'autoClosingPairs'
+ * @param langID - the languageID of the desired language configuration
+ * @param config - the language configuration to get, e.g., 'comments.lineComment' or 'autoClosingPairs'
  *
- * @returns {Promise<any>} - string or array or null if can't be found
+ * @returns string or array or null if can't be found
  */
-export async function get (langID: string, config: string) {
-  
-  if (_getLanguagesToSkip().includes(langID)) return null;
-  else if (langID.startsWith('csv')) return null;
-  
+export async function get (langID: string, config: string): Promise<LanguageComments|undefined> {
+
+  if (_getLanguagesToSkip().includes(langID)) return undefined;
+  else if (langID.startsWith('csv')) return undefined;
+
 	let configArg;
 
 	if (config && config.includes('.')) configArg = config.split('.');
@@ -45,9 +48,9 @@ export async function get (langID: string, config: string) {
 			const packageLangData = extension.packageJSON.contributes.languages.find(
 				(_packageLangData: any) => (_packageLangData.id === langID)
 			);
-			// If found, get the absolute config file path
+			// if found, get the absolute config file path
 			if (!!packageLangData && packageLangData.configuration) {
-				langConfigFilePath = path.join(
+				langConfigFilePath = join(
 					extension.extensionPath,
 					packageLangData.configuration
 				);
@@ -56,10 +59,10 @@ export async function get (langID: string, config: string) {
 		}
 	}
 
-	if (!!langConfigFilePath && fs.existsSync(langConfigFilePath)) {
+	if (!!langConfigFilePath && existsSync(langConfigFilePath)) {
 
 		// the whole language config will be returned if config arg was the empty string ''
-    desiredConfig = await jsonc.parse(fs.readFileSync(langConfigFilePath).toString());
+    desiredConfig = await parse(readFileSync(langConfigFilePath).toString());
 
 		if (Array.isArray(configArg)) {
 
@@ -68,8 +71,8 @@ export async function get (langID: string, config: string) {
 			}
 			return desiredConfig;
 		}
-		else if (config) return await jsonc.parse(fs.readFileSync(langConfigFilePath).toString())[config];
+		else if (config) return await parse(readFileSync(langConfigFilePath).toString())[config];
 		else return desiredConfig;
 	}
-	else return null;
+	else return undefined;
 };

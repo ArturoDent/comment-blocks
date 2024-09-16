@@ -27,6 +27,27 @@ function some_function_next() {}   // doesn't have to be on prior line
 
 ---------------------
 
+Use the `MARK:` syntax for minimap headers:
+
+```javascript
+// MARK:                       some_function_name                               
+function some_function_name() {}
+```
+
+----------------------
+
+Use `#region` and `#endRegion` syntax for minimap headers and folding controls:
+
+```javascript
+// #region  some_function_name                                                               
+//                      Caller : primary_function_name:13                       
+//                      Calls  : howdy                                          
+// #endregion                                                                   
+function some_function_name() { return howdy(); }
+```
+
+-----------
+
 ```javascript
 // ------------------------------   howdy ()   ---------------------------------
 // Incoming calls: func_AA:52, func_CC:40, func_DD:62   ------------------------
@@ -76,7 +97,7 @@ These examples are explained below.
 
 There are many options and variables that can be used in creating these blocks.
 
-<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
+<div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
 | Option            | Type               | Default                     |                                       |
 |-------------------|--------------------|-----------------------------|---------------------------------------|
@@ -90,6 +111,7 @@ There are many options and variables that can be used in creating these blocks.
 |`padLines`         |string or string[]  |`-`  of length 1             |Character to be used to pad each line  |
 |                   |                    |                             |                                       |
 |`subjects`         |string or string[]  |`["", "${selectedText}", ""]`|The subject for each line              |
+
 </div>
 <br/>
 
@@ -157,6 +179,10 @@ With the above, javascript and typescript files would default to `"justify": "le
 Whatever defaults you set in a `"commentBlocks.defaults"` setting (generic or per language) will be overridden by a keybinding that runs the `comment-blocks.createBlock` command.
 
 ## Keybindings
+
+* If you make a `Block Comment` with this extension and are unhappy with it, hit <kbd>Ctrl</kbd>+<kbd>Z</kbd> and that should restore the original condition.  (Sometimes you will have to hit <kbd>Ctrl</kbd>+<kbd>Z</kbd> twice.)  
+
+* Look for `Comment Blocks: Create` in the Command Palette.  But no matter how many keybindings you make, only the last one in `keybindings.json` is shown in the Command Palette.
 
 ```jsonc
 // in keybindings.json
@@ -230,13 +256,44 @@ Any of the variables listed below can be used, including combinations of them.  
 `["", "${selectedText}", ""]`    // no subject on first or third line, the selection on the middle line.
 ```
 
-`\\U`, `\\u`, `\\L` and `\\l` can be used in front of a variable to change its casing.  Example: `\\U${selectedText}`.
+If the clipBoard or the selected text contains `${relativeFile} ${fileBasename} ${fileBasenameNoExtension}` (for example) **all** those variables would be resolved within the `${CLIPBOARD}` and `${selectedText}` variables.  
 
-* This does not work: `\\U${CLIPBOARD}` or `\\U${selectedText}` **where** the clipBoard or the selected text contain another variable from below that you want resolved.  `${CLIPBOARD}` or `${selectedText}` by themselves will resolve included variables, you just can't change the casing of those with `\\U${CLIPBOARD}` or `\\U${selectedText}` (or the other casing modifiers like `\\L`, etc.).
+### Case Transforms
 
-If the clipBoard or the selected text contains `${relativeFile} ${fileBasename} ${fileBasenameNoExtension}` (for example) **all** those variables would be resolved within the `${CLIPBOARD}` and `${selectedText}` variables.
+<div style="border: 1px solid; border-radius: 4px; width:fit-content;">
+
+| Transform | Meaning                 | Result      | Usage                |
+|:---------:|-------------------------|-------------|:--------------------:|
+|`\\U`      | UPPERCASE ALL           | MY_NAME     | `\\U${someVariable}` |
+|`\\u`      | Capitalize first letter | My_name     | `\\u${someVariable}` |
+|`\\L`      | lowercase all           | my_name     | `\\L${someVariable}` |
+|`\\l`      | lowerCase first letter  | my_Name     | `\\l${someVariable}` |
+|`\\P`      | PascalCase              | MyName      | `\\P${someVariable}` |
+|`\\C`      | camelCase               | myName      | `\\C${someVariable}` |
+|`\\T`      | TitleCase               | MyName      | `\\T${someVariable}` |
+|           |                         |             |                      |
+|`\\S`      | SCREAMING_SNAKE_CASE    | MY_NAME     | `\\S${someVariable}` |
+| `\\s`     | snake_case              | my_name     | `\\s${someVariable}` |
+|           |                         |             |                      |
+|`\\K`      | SCREAMING-KEBAB-CASE    | MY-NAME     | `\\K${someVariable}` |
+|`\\k`      | kebab-case              | my-name     | `\\k${someVariable}` |
+
+</div>
+</br>
+
+These can be used in front of a variable to change its casing.  Example: `\\U${selectedText}` or `\\K${nextFunction}`.  
+
+See more examples of [case transforms on a function name](caseTransforms.md).
+
+* This does not work: `\\U${CLIPBOARD}` or `\\U${selectedText}` **where** the clipBoard or the selected text **contain another variable** from below that you want resolved.  
+
+`${CLIPBOARD}` or `${selectedText}` by themselves will resolve included variables, you just can't change the casing of those with `\\U${CLIPBOARD}` or `\\U${selectedText}` (or the other casing modifiers like `\\L`, etc.).
+
+Otherwise, `\\U${CLIPBOARD}` or `\\U${selectedText}` work as expected.  
 
 ------------
+
+### More on Defaults
 
 You could make the settings contain most or all of your options and values.  Like this setting:
 
@@ -286,7 +343,7 @@ There is a **precedence** to the options:
 
 ## Variables
 
-<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
+<div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
 |                                |  Snippet equivalent             |  |
 |--------------------------------|---------------------------------|--|
@@ -311,10 +368,11 @@ There is a **precedence** to the options:
 | `${matchNumber}`               | `${CURSOR_NUMBER}`              |  |
 | `${lineIndex}`                 | `${TM_LINE_INDEX}`              |  |
 | `${lineNumber}`                | `${TM_LINE_NUMBER}`             |  |
+
 </div>
 </br>
 
-<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
+<div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
 |  Other Snippet variables      |  |
 |-------------------------------|--|
@@ -339,6 +397,7 @@ There is a **precedence** to the options:
 | `${CURRENT_TIMEZONE_OFFSET}`  |  |
 | `${RANDOM}`                   |  |
 | `${RANDOM_HEX} `              |  |
+
 </div>
 </br>
 
@@ -360,7 +419,7 @@ This would get and keep only that part of the selected text after a `-`.  You ca
 
 -----------------------
 
-<div style="border: 1px solid; border-radius: 6px; width:fit-content;">
+<div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
 |  Extension variables   | These are defined by this extension only                               |
 |------------------------|------------------------------------------------------------------------|
@@ -376,6 +435,7 @@ This would get and keep only that part of the selected text after a `-`.  You ca
 |                        |                                                                        |
 | `${nextSymbol}`        | Next symbol name, may be a variable, function, etc. name               |
 | `${previousSymbol}`    | Previous symbol name.  Symbol names are language-dependent             |
+
 </div>
 </br>
 
@@ -450,6 +510,8 @@ You can use this "variable" on any of the options as often as you like.  The bel
 ```
 
 ### `${selectedText}` and `${CLIPBOARD}`
+
+* If the selected text has **line comments**, the comment characters will be removed from each such line.  Block comments will be unaffected.  To restore the comment as it was, hit <kbd>Ctrl</kbd>+<kbd>Z</kbd> twice after making the `Block Comment`.  
 
 Both of these variables can consist of either a single line or word or they could contain multiple lines.  There is special handling of multiline content.  If you have a keybinding like
 
@@ -608,6 +670,68 @@ or
 //------------------------------------------     Function someFuncName ()     */
 ```
 
+```jsonc
+{
+  "key": "alt+b",
+  "command": "comment-blocks.createBlock",
+  "args": {
+
+    "startText": "${LINE_COMMENT} MARK: ",
+    "endText": "",
+    "subjects": "${nextFunction}",
+    "padLines": "",
+  }
+}
+```
+
+produces  (for more on minimap markers, see [Minimap folding markers](https://code.visualstudio.com/docs/getstarted/userinterface#_minimap))
+
+```javascript
+// MARK:                       some_function_name                               
+function some_function_name() {}
+```
+
+Similarly, you can use `#region` and `#endRegion` for minimap headers and folding controls:
+
+```jsonc
+{
+  "key": "alt+b",
+  "command": "comment-blocks.createBlock",
+  "args": {
+
+    "justify": ["left", "center"],  // first line left, all the rest center
+
+    // will be able to fold from the #region line to #endregion
+    "startText": ["${LINE_COMMENT} #region ", "${LINE_COMMENT}", "${LINE_COMMENT}", "${LINE_COMMENT} #endregion", ],
+
+    "endText": "",
+    "subjects": [
+      "${nextFunction}",                            // put an // #region here (for example)
+      "Caller : ${incomingCalls}",        // starts with the line comment only
+      "Calls  : ${outgoingCalls}",        // starts with the line comment only
+      ""                                  // put an // #endregion here (for example)
+    ],
+
+    "padLines": "",
+    "gapLeft": 1
+  }
+}
+```
+
+produces
+
+```javascript
+function primary_function_name() { some_function_name(); }  // on line 13
+function howdy() { }      // this must actually exist for outgoing calls to find it
+
+
+// #region  some_function_name                                                               
+//                      Caller : primary_function_name:13                       
+//                      Calls  : howdy                                          
+// #endregion                                                                   
+function some_function_name() { return howdy(); }
+```
+
 -------------------
 
 ```jsonc
@@ -755,7 +879,7 @@ This setting
   "justify": "center",
   
   "startText": "${LINE_COMMENT}",
-  // because startText is set to ${LINE_COMMENT}, endText will be set to ${LINE_COMMENT} too
+  // because startText is set to ${LINE_COMMENT} and is a string, endText will be set to ${LINE_COMMENT} too
   // thus overriding the default ${BLOCK_COMMENT_END}.  
   // "endText": "${LINE_COMMENT}",   // so this is not necessary if "startText": "${LINE_COMMENT}"
   
@@ -799,19 +923,29 @@ fileBasenameNoExtension = ${fileBasenameNoExtension}
 
 Only the **primary** selection is used and **REPLACED**.  That is the first one you made, not necessarily the one nearer the top of the file.
 
-`\\U${CLIPBOARD}` or `\\U${selectedText}` do not work (will not resolve) any variables included in the clipboard or selected text.  `${CLIPBOARD}` or `${selectedText}` (i.e., with no case modifiers) do resolve such included variables.
+`\\U${CLIPBOARD}` or `\\U${selectedText}` do not work (will not resolve) any variables included in the clipboard or selected text.  `${CLIPBOARD}` or `${selectedText}` (i.e., with no case modifiers) do resolve such included variables.  
+
+The Command Palette will show only the last keybinding in `keybindings.json` that uses this command.  
 
 ## TODO
 
 * Check `defaults` for bad values?
 * Improve undefined `subjects` handling.
 * Enable case modifying of `${CLIPBOARD}` or `${selectedText}` with included variables.
-* Support pascalCase, camelCase, and snakeCase (with \\P, \\C, \\S).
+* Support pascalCase, camelCase, titleCase, kebabCase and snakeCase (with \\\\P, \\\\C, \\\\T, \\\\K, \\\\S).
 * Handle content that exceeds the `lineLength`.
-* Understand what is writing to settings on prior run.  Not a problem but want to know.
-* Consider moving `${getInput}` and `${default}` up to `getSpecialVariables()`.
+* Consider moving `${getInput}` and `${default}` up to `getSpecialVariables()`.  
+* Investigate removing line or block comments from `${CLIPBOARD}`.  Remove block comments from `${selectedText}`  
+* Consider making a Command Palette command for each keybinding.  
 
 ## Release Notes
 
 0.3.0 Added `${incomingCalls}` and `${outgoingCalls}`  
 &emsp;&emsp; Enabled lanuage-specific settings.  
+
+0.4.0 Remove line comments from all selected lines.  
+&emsp;&emsp; Fixed keybinding variable completions.  
+&emsp;&emsp; Comment configurations are a global variable and stored.
+&emsp;&emsp; Added pascalCase, camelCase, titleCase, (screaming) kebabCase and (screaming) snakeCases.  
+&emsp;&emsp; Remove line comments for all selected text.  
+&emsp;&emsp; Added caseTransforms.md  
