@@ -11,13 +11,16 @@ import { resolveVariables } from './resolveVariables';
  * @param selectedText
  * @param selection
  * @param matchIndex
+ * @param leadingLength
+ * @param trim
  * @returns
  **/
 // ----------------------------------------   build ()   -------------------------------------------
 // Caller : activate                                                                          ------
 // Calls  : _expandMultilines, _setLengthAndFill, resolveVariables, _equalizeSubjectLengths   ------
 // -------------------------------------------------------------------------------------------------
-export async function build(editor: TextEditor, options: CommentBlockSettings, selection: Selection, matchIndex: number): Promise<SnippetString> {
+export async function build(editor: TextEditor, options: CommentBlockSettings, selection: Selection,
+  matchIndex: number, leadingLength: number, trim: boolean): Promise<SnippetString> {
 
   if (typeof options.subjects === 'string') options.subjects = [options.subjects];
 
@@ -28,10 +31,10 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
   const hasClipBoardVariable = options.subjects.some(subject => subject.includes("${CLIPBOARD}"));
 
   // only do if multiline selection or clipboard
-  if (hasSelectedTextVariable && !selection.isSingleLine) await _expandMultilines(editor, options, "${selectedText}");
+  if (hasSelectedTextVariable && !selection.isSingleLine) await _expandMultilines(editor, options, "${selectedText}", leadingLength);
   if (hasClipBoardVariable) {
     const clipText = await env.clipboard.readText();
-    if(clipText.split(/\r?\n/).length > 1) await _expandMultilines(editor, options, "${CLIPBOARD}");
+    if(clipText.split(/\r?\n/).length > 1) await _expandMultilines(editor, options, "${CLIPBOARD}", leadingLength);
   }
 
   let numberOfLines = options.subjects.length;  // reset numberOfLines if multilines above
@@ -47,7 +50,7 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     // loop through all options to resolveVariables on the line
     for await (let option of Object.entries(options)) {
 
-      if (option[0] === 'selectCurrentLine') continue;
+      if (option[0] === 'selectCurrentLine' || option[0] === 'keepIndentation') continue;
 
       if ((option as unknown as string[])[1][line].toString().search(specialVariable) !== -1) {  // typeof string
 
@@ -67,11 +70,16 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
   for (let line = 0; line < numberOfLines; line++) {
 
     // set these variable names to each option[line] value
-    // note the leading ',' - serves as an empty placeholder for selectCurrentLine
-    let [ , lineLength, startText, endText, justify, gapLeft, gapRight, padLine, subject ] =
+    // note the leading ',,' = empty placeholders for selectCurrentLine and keepIndentation
+    let [ ,, lineLength, startText, endText, justify, gapLeft, gapRight, padLine, subject ] =
         Object.entries(options).map((option) => {
-          if (option[0] !== 'selectCurrentLine') return (option[1] as any)[line];
+          if (option[0] !== 'selectCurrentLine' && option[0] !== 'keepIndentation') return (option[1] as any)[line];
         });
+
+    // adjust lineLength for leading whitespace when selecting text with  white space ahead of it
+    // get leadingLength here?
+    // if (!trim) lineLength -= leadingLength;
+    if (!trim && selection.isSingleLine) lineLength -= leadingLength;
 
     gapLeft = Math.floor(gapLeft);
     gapRight = Math.floor(gapRight);
@@ -86,9 +94,10 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     // if startText "${LINE_COMMENT}"
     // endText = (startText?.startsWith("${LINE_COMMENT}")) ? "${LINE_COMMENT}" : "${BLOCK_COMMENT_END}";
 
-
     let subjectLength = 0;
     // don't trim
+    if (trim && selection.isSingleLine) subject = subject.substring(leadingLength);
+    else if (!trim && !selection.isSingleLine) startText = startText.padStart(leadingLength + startText.length, ' ');
 
     if (subject) subjectLength = subject?.length;
     else subject = '';
@@ -139,7 +148,7 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
  * @param options
  * @param caller - ${selectedText} or ${CLIPBOARD}
  **/
-async function _expandMultilines(editor: TextEditor, options: CommentBlockSettings, caller: string): Promise<void> {
+async function _expandMultilines(editor: TextEditor, options: CommentBlockSettings, caller: string, leadingLength: number): Promise<void> {
 
   let splitText: string[] = [];
   let newArr: any[] = [];
@@ -160,10 +169,16 @@ async function _expandMultilines(editor: TextEditor, options: CommentBlockSettin
       // don't care about the 0 arguments below as they don't impact selectedText/clipBoard resolution
       let resolved = await resolveVariables(match[0], editor.selection, 0, 0, caller);
       splitText = resolved.split(/\r?\n/);
-      splitText = _removeCommonLeadingWhiteSpace(splitText);  // do even if splitText.length = 1
+      // splitText = _removeCommonLeadingWhiteSpace(splitText);  // do even if splitText.length = 1
+      // splitText = _removeCommonLeadingWhiteSpace(splitText);  // do even if splitText.length = 1
+
+      const re = new RegExp(`(^\\s{${leadingLength}})`, "m");
+      // remove minimum amout of whiteSpace from each line
+      splitText = splitText.map(line => line.replace(re, ''));
+
       splitText = splitText.map(line => line || " ");
 
-      // addd other text that may appear on the line like "my function: ${selectedText}"
+      // add other text that may appear on the line like "my function: ${selectedText}"
       // or "${thisFunction} \\U${selectedText}"   subject.match(/\\U\$\{selectedText\}/g)
       splitText[0] = subject.replaceAll(match[0], splitText[0]);
 
@@ -179,6 +194,63 @@ async function _expandMultilines(editor: TextEditor, options: CommentBlockSettin
 
   options.subjects = newArr;
 }
+
+// /**
+//  * Find and remove any common leading whitespace from all members of the splitText (from selectedText or CLIPBOARD)
+//  *
+//  * @param splitText
+//  * @returns length of common leading whitespace
+//  **/
+// export function getCommonLeadingWhiteSpace(splitText: string[]): number {
+
+//   let minimum: number;
+//   const wsRE = new RegExp("^(\\s*)", "m");  // whiteSpace regex
+//   let match;
+
+//   // ignore empty lines (no white space) in the splitText
+
+//   if (splitText.length === 1) {
+//     // splitText[0] = splitText[0].trim();
+//     // return splitText;
+//     match = splitText[0].match(wsRE);
+//     if (match) return match[0].length;
+//     else return 0;
+//   }
+
+//   else {
+//     // let reducedSplitText: string[] = [];
+//     // let match;
+
+//     // get the first nonEmpty line, so don't set minimum to 0 because the line = ''
+//     const firstNonEmptyLine = splitText.find(line => line.length);
+//     if (firstNonEmptyLine) match = firstNonEmptyLine.match(wsRE);
+//     else return 0;  // there are only empty lines
+
+//     if (match) minimum = match[0].length;
+//     else return 0;      // no whiteSpace at beginning of first nonEmpty line, so stop and return
+//                                 // since won't be able to remove any leading whiteSpace
+
+//     splitText.forEach(line => {
+//       let lineLength: number;
+
+//       if (line.length) {    // so empty lines are not considered
+//         const thisLineMatch = line.match(wsRE);
+//         if (thisLineMatch) {
+//           lineLength = thisLineMatch[0].length;
+//           if (lineLength < minimum) {
+//             minimum = lineLength;
+//           }
+//         }
+//       }
+//     });
+
+//     // const re = new RegExp(`(^\\s{${minimum}})`, "m");
+//     // remove minimum amout of whiteSpace from each line
+//     // reducedSplitText = splitText.map(line => line.replace(re, ''));
+
+//     return minimum;
+//   }
+// }
 
 
 /**
@@ -198,14 +270,14 @@ function _removeCommonLeadingWhiteSpace(splitText: string[]): string[] {
 
   else {
     let reducedSplitText: string[] = [];
-    const wsRE = new RegExp("^(\\s*)", "m");  // whiteSpacce regex
+    const wsRE = new RegExp("^(\\s*)", "m");  // whiteSpace regex
     let minimum: number;
     let match;
 
-    // get the first nonEmpty line, so don't set minimum to 0 beause the line = ''
+    // get the first nonEmpty line, so don't set minimum to 0 because the line = ''
     const firstNonEmptyLine = splitText.find(line => line.length);
     if (firstNonEmptyLine) match = firstNonEmptyLine.match(wsRE);
-    else return splitText;  // there are no nonEmpty lines
+    else return splitText;  // there are only empty lines
 
     if (match) minimum = match[0].length;
     else return splitText;      // no whiteSpace at beginning of first nonEmpty line, so stop and return
@@ -226,6 +298,7 @@ function _removeCommonLeadingWhiteSpace(splitText: string[]): string[] {
     });
 
     const re = new RegExp(`(^\\s{${minimum}})`, "m");
+    // remove minimum amout of whiteSpace from each line
     reducedSplitText = splitText.map(line => line.replace(re, ''));
 
     return reducedSplitText;
@@ -250,7 +323,7 @@ function _expandOptions(options: CommentBlockSettings, selectionLength: number, 
 
     let elementsToInsert;
 
-    if (option[0] === 'subjects' || option[0] === 'selectCurrentLine') continue;
+    if (option[0] === 'subjects' || option[0] === 'selectCurrentLine' || option[0] === 'keepIndentaion') continue;
 
     let [ key , values2 ] = option;
     let values;
@@ -296,7 +369,7 @@ async function _setLengthAndFill(options: CommentBlockSettings, numberOfLines: n
 
   for (let [option, value] of Object.entries(options)) {
 
-    if (option === 'selectCurrentLine') continue;
+    if (option === 'selectCurrentLine' || option === 'keepIndentation') continue;
 
     let newValue: Array<string | number>;
 

@@ -21,6 +21,8 @@ export async function getSettings(doc: TextDocument): Promise<CommentBlockSettin
 
     selectCurrentLine: defaults?.selectCurrentLine,
 
+    keepIndentation: defaults?.keepIndentation,
+
     lineLength: defaults?.lineLength,
 
     startText: defaults?.startText,
@@ -44,6 +46,7 @@ export async function getSettings(doc: TextDocument): Promise<CommentBlockSettin
 export function getDefaults() {
   return {
     selectCurrentLine: true,
+    keepIndentation: true,
     lineLength: 80,
     startText: '${BLOCK_COMMENT_START}',
     // endText: '${BLOCK_COMMENT_END}',   // not used

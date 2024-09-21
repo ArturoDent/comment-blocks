@@ -64,6 +64,11 @@
                 }
               ]
             },
+            "keepIndentation": {
+              "description": "Use any existing indentation - start the comment after the indentation.",
+              "type": "boolean",
+              "default": true
+            },
             "selectCurrentLine": {
               "description": "Select all of the current line or all of partially selected multiple lines.",
               "type": "boolean",

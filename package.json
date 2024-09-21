@@ -11,7 +11,7 @@
   "funding": {
     "url": "https://www.buymeacoffee.com/ArturoDent"
   },
-  "version": "0.4.0",
+  "version": "0.5.0",
   "preview": true,
   "engines": {
     "vscode": "^1.46.0"
@@ -70,8 +70,14 @@
                 "type": "boolean",
                 "default": true
               },
-              "lineLength": {
+              "keepIndentation": {
                 "order": 1,
+                "description": "Use any existing indentation - start the comment after the indentation.",
+                "type": "boolean",
+                "default": true
+              },
+              "lineLength": {
+                "order": 2,
                 "description": "Number of total characters in each line.",
                 "oneOf": [
                   {
@@ -101,7 +107,7 @@
                 "default": 80
               },
               "subjects": {
-                "order": 2,
+                "order": 3,
                 "description": "The text, usually the selected text, that will be justified on each line.  An empty string in the array means there will be no text justified on that line.",
                 "oneOf": [
                   {
@@ -120,7 +126,7 @@
                 ]
               },
               "justify": {
-                "order": 3,
+                "order": 4,
                 "description": "Where to place the selected text  Options: center, left, right.",
                 "oneOf": [
                   {
@@ -169,7 +175,7 @@
                 ]
               },
               "startText": {
-                "order": 4,
+                "order": 5,
                 "description": "Text to put at the start of each line.",
                 "default": "${BLOCK_COMMENT_START}",
                 "examples": [
@@ -189,7 +195,7 @@
                 ]
               },
               "endText": {
-                "order": 5,
+                "order": 6,
                 "description": "Text to put at the end of each line.",
                 "default": "${BLOCK_COMMENT_END}",
                 "examples": [
@@ -209,7 +215,7 @@
                 ]
               },
               "gapLeft": {
-                "order": 6,
+                "order": 7,
                 "description": "Number of spaces to the left of the selected text.  Minimum = 0.",
                 "oneOf": [
                   {
@@ -240,7 +246,7 @@
                 ]
               },
               "gapRight": {
-                "order": 7,
+                "order": 8,
                 "description": "Number of spaces to the right of the selected text.  Minimum = 0.",
                 "oneOf": [
                   {
@@ -271,7 +277,7 @@
                 ]
               },
               "padLines": {
-                "order": 8,
+                "order": 9,
                 "default": "-",
                 "description": "Character to be used to pad around the justigied text, isf any, in each line.",
                 "examples": ["-", "*", "/", " "],

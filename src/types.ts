@@ -8,6 +8,7 @@ export type LanguageComments = {
 
 export type CommentBlockSettings = {
   selectCurrentLine?: boolean,
+  keepIndentation: boolean,
   lineLength: number | Array<number>,
   startText: string | Array<string>,
   endText: string | Array<string>,

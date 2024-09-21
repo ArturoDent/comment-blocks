@@ -154,7 +154,7 @@ function _completeStringArgs(linePrefix: string, position: Position, option: str
 
 
 /**
- * Get completions for number options.
+ * Get completions for number options.  Only the special variables.
  * Check linePrefix for completion trigger characters.
  *
  * @param  linePrefix
@@ -293,7 +293,7 @@ function _completeVariables(position: Position, trigger: string): Array<Completi
 
 
 /**
- * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
+ * Make completion items for special variables
  *
  * @param   position
  * @param   trigger - triggered by '$' so include its range

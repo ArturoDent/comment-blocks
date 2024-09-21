@@ -99,29 +99,34 @@ There are many options and variables that can be used in creating these blocks.
 
 <div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
-| Option            | Type               | Default                     |                                       |
-|-------------------|--------------------|-----------------------------|---------------------------------------|
-|`selectCurrentLine`|boolean             |`true`                       |Should the current line(s) be selected |
-|`lineLength`       |integer or integer[]|80                           |Each line can be a different length    |
-|`startText`        |string or string[]  |`${BLOCK_COMMENT_START}`     |Text at the beginning of each line     |
-|`endText`          |string or string[]  |`${BLOCK_COMMENT_END}`       |Text at the end of each line *         |
-|`justify`          |string or string[]  |`center`                     |Where to put the subjects on each line |
-|`gapLeft`          |integer or integer[]|3                            |Blank space to the left of the subject |
-|`gapRight`         |integer or integer[]|3                            |Blank space to the right of the subject|
-|`padLines`         |string or string[]  |`-`  of length 1             |Character to be used to pad each line  |
-|                   |                    |                             |                                       |
-|`subjects`         |string or string[]  |`["", "${selectedText}", ""]`|The subject for each line              |
+| Option            | Type               | Default                     |                                          |
+|-------------------|--------------------|-----------------------------|------------------------------------------|
+|`selectCurrentLine`|boolean             |`true`                       |Should the current line(s) be selected    |
+|`keepIndentation`  |boolean             |`true`                       |Keep the indentation of selected text     |
+|                   |                    |                             |&emsp;or cursor position on an empty line |
+|                   |                    |                             |                                          |
+|`lineLength`       |integer or integer[]|80                           |Each line can be a different length       |
+|`startText`        |string or string[]  |`${BLOCK_COMMENT_START}`     |Text at the beginning of each line        |
+|`endText`          |string or string[]  |`${BLOCK_COMMENT_END}`       |Text at the end of each line *            |
+|`justify`          |string or string[]  |`center`                     |Where to put the subjects on each line    |
+|`gapLeft`          |integer or integer[]|3                            |Blank space to the left of the subject    |
+|`gapRight`         |integer or integer[]|3                            |Blank space to the right of the subject   |
+|`padLines`         |string or string[]  |`-`  of length 1             |Character to be used to pad each line     |
+|                   |                    |                             |                                          |
+|`subjects`         |string or string[]  |`["", "${selectedText}", ""]`|The subject for each line                 |
 
 </div>
 <br/>
 
-* If you set the default for `startText` to `${LINE_COMMENT}` (in your settings) the default for `endText` will also be set to `${LINE_COMMENT}` unless you specifically set some `endText` value.
+If you set the default for `startText` to `${LINE_COMMENT}` (in your settings) the default for `endText` will also be set to `${LINE_COMMENT}` unless you specifically set some `endText` value.
 
-* `selectCurrentLine` applies to the current line and all partially selected lines in a multiline selection.  The selection will be expanded to include all of the lines - so from character 0 on the first line of the selection to the end of the last selected line.
+`selectCurrentLine` applies to the current line and all partially selected lines in a multiline selection.  The selection will be expanded to include all of the lines - so from character 0 on the first line of the selection to the end of the last selected line.
 
-* **Important**: If you make a non-empty selection on a **single line** (so an actual selection, not just a cursor point), then that line's selection will **NOT** be expanded - ignoring the `selectCurrentLine` setting!  It is assumed that if you make a selection on one line, then that is all you want - not the rest of the line, especially any leading whitespace on the line.
+* **Important**: It is recommended to use `selectCurrentLine` as `true` (its default).  It will be applied regardless even if set to `false` for multiline selections.  
 
-* The number of lines of the comment block is determined by how many `subjects` you have, except when you use `${selectedText}` and `${CLIPBOARD}`.  The number of subject lines for `${selectedText}` and `${CLIPBOARD` are expanded by their length.  So if the selected text is 3 lines long, the number of subjects represented by `${selectedText}` is 3 lines in addition to any other subject lines you may have.
+`keepIndentation` will attempt to start the created comment at the indent level of the selected text or the cursor on a line with only whitespace.  And have the comment end at your desired `lineLength` column.
+
+The number of lines of the comment block is determined by how many `subjects` you have, except when you use `${selectedText}` and `${CLIPBOARD}`.  The number of subject lines for `${selectedText}` and `${CLIPBOARD` are expanded by their length.  So if the selected text is 3 lines long, the number of subjects represented by `${selectedText}` is 3 lines in addition to any other subject lines you may have.
 
 ```jsonc
 "subjects": "${relativeFile}"                     // comment block is 1 line
@@ -949,3 +954,5 @@ The Command Palette will show only the last keybinding in `keybindings.json` tha
 &emsp;&emsp; Added pascalCase, camelCase, titleCase, (screaming) kebabCase and (screaming) snakeCases.  
 &emsp;&emsp; Remove line comments for all selected text.  
 &emsp;&emsp; Added caseTransforms.md  
+
+0.4.0 Add `keepIndentation` option.  
