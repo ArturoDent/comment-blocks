@@ -1,5 +1,7 @@
 # Comment Blocks
 
+* v0.5.0 Added `keepIndentation` option.  
+
 Create comment blocks like
 
 ```javascript
