@@ -934,6 +934,18 @@ Only the **primary** selection is used and **REPLACED**.  That is the first one 
 
 The Command Palette will show only the last keybinding in `keybindings.json` that uses this command.  
 
+Some languages, like `css`, do not support lineComments.  If you use `${LINE_COMMENT}` they will be converted as follows:
+
+```jsonc
+        "startText": "${LINE_COMMENT}",             // startText converted to below
+        // "startText": "${BLOCK_COMMENT_START}",   // just use this instead
+
+        "endText": "${LINE_COMMENT}",              // endText converted to below
+        // "endText": "${BLOCK_COMMENT_END}",      // just use this instead
+```
+
+Using `${LINE_COMMENT}` in other places will result in errors.  
+
 ## TODO
 
 * Check `defaults` for bad values?
@@ -955,6 +967,7 @@ The Command Palette will show only the last keybinding in `keybindings.json` tha
 &emsp;&emsp; Comment configurations are a global variable and stored.
 &emsp;&emsp; Added pascalCase, camelCase, titleCase, (screaming) kebabCase and (screaming) snakeCases.  
 &emsp;&emsp; Remove line comments for all selected text.  
-&emsp;&emsp; Added caseTransforms.md  
+&emsp;&emsp; Added caseTransforms.md.  
 
-0.4.0 Add `keepIndentation` option.  
+0.5.0 Add `keepIndentation` option.  
+&emsp;&emsp; 0.5.2 Address files that don't support `lineComment`, but it is used in a keybinding.  

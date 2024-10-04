@@ -96,7 +96,8 @@ export async function resolveVariables (resolve: string, selection: Selection, m
   re = regexp.snippetRE;
 
   resolved = await utilities.replaceAsync(resolved, re, async function (match: any, p1: any, p2: any) {
-    const variableToResolve = await _resolveSnippetVariables(match, selection);
+    // const variableToResolve = await _resolveSnippetVariables(match, selection);
+    const variableToResolve = await _resolveSnippetVariables(match, selection, caller);
     groupNames = {
       caseModifier: p1,
       snippetVars: p2
@@ -499,10 +500,10 @@ async function _resolvePathVariables (variableToResolve: string, selection: Sele
  *
  * @param variableToResolve - the "filesToInclude/find/replace" value
  * @param selection - current selection
-
+ * @param caller - which option, like 'startText' is initiating the resolve request
  * @returns the resolved path variable
  */
-async function _resolveSnippetVariables (variableToResolve: string, selection: Selection): Promise<string> {
+async function _resolveSnippetVariables (variableToResolve: string, selection: Selection, caller: string): Promise<string> {
 
   const document = window.activeTextEditor?.document;
   if (!document) return variableToResolve;
@@ -615,8 +616,14 @@ async function _resolveSnippetVariables (variableToResolve: string, selection: S
       break;
 
     case "${LINE_COMMENT}": case "${ LINE_COMMENT }":
+
+      // const call = caller;
+      
       if (!global.comments) global.comments = await langConfigs.get(document.languageId, 'comments');
       if (global.comments?.lineComment) resolved = global.comments?.lineComment ?? "";
+      else if (caller === "startText" && global.comments?.blockComment) resolved = global.comments?.blockComment[0];
+      else if (caller === "endText" && global.comments?.blockComment) resolved = global.comments?.blockComment[1];
+        
       else resolved = "";
       break;
 

@@ -1,22 +1,22 @@
-import { commands, window, ExtensionContext, Selection, Position, SnippetString } from 'vscode';
+// import { commands, window, ExtensionContext, Selection, Position, SnippetString, CancellationToken, languages, ProviderResult, TextDocument, MarkdownString, Range } from 'vscode';
 import { getSettings, getDefaults } from './configs';
 import { makeKeybindingsCompletionProvider, makeSettingsCompletionProvider } from './completions';
 import { build } from './blocks';
 import { getCommonLeadingWhiteSpace } from './whitespace';
 import { CommentBlockSettings } from './types';
+import * as vscode from 'vscode';
 
 
-
-export async function activate(context: ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
   // can't use this here, something (Object.assign?) is globally changing the settings each run
   // let settings = await getSettings();
   await makeKeybindingsCompletionProvider(context);
   await makeSettingsCompletionProvider(context);
 
-  let disposable = commands.registerCommand('comment-blocks.createBlock', async (args: CommentBlockSettings) => {
+  let disposable = vscode.commands.registerCommand('comment-blocks.createBlock', async (args: CommentBlockSettings) => {
 
-    const editor = window.activeTextEditor;
+    const editor = vscode.window.activeTextEditor;
     let   selection = editor?.selection;
     const document = editor?.document;
     if (!editor || !document || !selection) return;
@@ -63,8 +63,11 @@ export async function activate(context: ExtensionContext) {
 
     let leadingLength = 0;  // set leading whiteSpace length, to subtract from lineLength later
 
+    // TODO: file an issue, for css (which has no lineComment) the below will ADD a block comment if there is none!!
     // remove leading comment characters from all selected lines, the clipBoard is unaffected
-    await commands.executeCommand('editor.action.removeCommentLine');
+    // temporary workaround:
+    if (document.languageId !== 'css')
+      await vscode.commands.executeCommand('editor.action.removeCommentLine');
     // clipBoard: would have to know the line/block characters for each language
 
     if (selection.isSingleLine && selectCurrentLine === true) {      // selection is single line
@@ -74,15 +77,15 @@ export async function activate(context: ExtensionContext) {
         if (document.lineAt(selection.active.line).firstNonWhitespaceCharacterIndex === selection.active.character)
           leadingLength = selection.active.character;
         else {
-          await commands.executeCommand('cursorLineEnd');
-          await commands.executeCommand('cursorHomeSelect');
+          await vscode.commands.executeCommand('cursorLineEnd');
+          await vscode.commands.executeCommand('cursorHomeSelect');
           leadingLength = editor.selection.active.character;
         }
       }
       else {
         const active = selection.active;
         const lineLength = document.lineAt(active.line).text.length;
-        editor.selection = new Selection(new Position(active.line, 0), new Position(active.line, lineLength));
+        editor.selection = new vscode.Selection(new vscode.Position(active.line, 0), new vscode.Position(active.line, lineLength));
         leadingLength = getCommonLeadingWhiteSpace(document.getText(editor.selection));
         trim = true;
       }
@@ -106,9 +109,9 @@ export async function activate(context: ExtensionContext) {
       const anchorLineLength = document.lineAt(anchor.line).text.length;
 
       if (selection.isReversed)
-        editor.selection = new Selection(new Position(anchor.line, anchorLineLength), new Position(active.line, 0));
+        editor.selection = new vscode.Selection(new vscode.Position(anchor.line, anchorLineLength), new vscode.Position(active.line, 0));
       else if (!selection.isReversed)
-        editor.selection = new Selection(new Position(anchor.line, 0), new Position(active.line, activeLineLength));
+        editor.selection = new vscode.Selection(new vscode.Position(anchor.line, 0), new vscode.Position(active.line, activeLineLength));
 
       if (keepIndentation) {
         leadingLength = getCommonLeadingWhiteSpace(document.getText(editor.selection).split(/\r?\n/));
@@ -121,7 +124,7 @@ export async function activate(context: ExtensionContext) {
 
     // else if (!selection.isSingleLine && selectCurrentLine === false) {}      // not used
 
-    const snippet: SnippetString = await build(editor, combinedOptions, editor.selection, matchIndex, leadingLength, trim);
+    const snippet: vscode.SnippetString = await build(editor, combinedOptions, editor.selection, matchIndex, leadingLength, trim);
     await editor.insertSnippet(snippet, editor.selection);
   });
 

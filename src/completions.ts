@@ -2,6 +2,7 @@ import {
   ExtensionContext, languages, Range, Position,
   CompletionItem, CompletionItemKind, MarkdownString
 } from 'vscode';
+// import * as langConfigs from './getLanguageConfig';
 
 import { Node, parseTree, getLocation, getNodeValue } from 'jsonc-parser';  // for the language-specific comment characters
 
@@ -206,7 +207,9 @@ function _completeVariables(position: Position, trigger: string): Array<Completi
 	let replaceRange;
 
 	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
-	else replaceRange = new Range(position, position);
+  else replaceRange = new Range(position, position);
+  
+  // if (!global.comments && window.activeTextEditor) global.comments = await langConfigs.get(window.activeTextEditor?.document.languageId, 'comments');
 
   const completionItems = [
 
@@ -285,6 +288,8 @@ function _completeVariables(position: Position, trigger: string): Array<Completi
 
     _makeValueCompletionItem("${BLOCK_COMMENT_START}", replaceRange, "", "44", "Block comment start characters."),
     _makeValueCompletionItem("${BLOCK_COMMENT_END}", replaceRange, "", "45", "Block comment end characters."),
+
+    // TODO: not in css.configurationjson
     _makeValueCompletionItem("${LINE_COMMENT}", replaceRange, "", "46", "Line comment start characters.")
   ];
 
