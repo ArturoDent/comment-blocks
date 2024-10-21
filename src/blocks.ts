@@ -44,6 +44,7 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
   await _setLengthAndFill(options, numberOfLines);
 
   const specialVariable = new RegExp('\\$\\{.*\\}');  // look for '${...}' to resolve
+  let subjects: string[] = [];
 
   for (let line = 0; line < numberOfLines; line++) {
 
@@ -52,7 +53,15 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
 
       if (option[0] === 'selectCurrentLine' || option[0] === 'keepIndentation') continue;
 
-      if ((option as unknown as string[])[1][line].toString().search(specialVariable) !== -1) {  // typeof string
+      else if (option[0] === 'subjects') {
+        if ((option as unknown as string[])[1][line].toString().search(specialVariable) !== -1) {
+          let resolved = await resolveVariables((option as unknown as string[])[1][line], selection, matchIndex, line, option[0]);
+          subjects.push(resolved);
+        }
+        else subjects.push((option as unknown as string[])[1][line]);
+      }
+
+      else if ((option as unknown as string[])[1][line].toString().search(specialVariable) !== -1) {  // typeof string
 
         var resolved = await resolveVariables((option as unknown as string[])[1][line], selection, matchIndex, line, option[0]);
         // @ts-ignore
@@ -71,7 +80,8 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
 
     // set these variable names to each option[line] value
     // note the leading ',,' = empty placeholders for selectCurrentLine and keepIndentation
-    let [ ,, lineLength, startText, endText, justify, gapLeft, gapRight, padLine, subject ] =
+    // let [ ,, lineLength, startText, endText, justify, gapLeft, gapRight, padLine, subject ] =
+    let [ ,, lineLength, startText, endText, justify, gapLeft, gapRight, padLine ] =
         Object.entries(options).map((option) => {
           if (option[0] !== 'selectCurrentLine' && option[0] !== 'keepIndentation') return (option[1] as any)[line];
         });
@@ -91,13 +101,15 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     padLine = padLine || "";
     justify = justify || "";
 
-    // if startText "${LINE_COMMENT}"
-    // endText = (startText?.startsWith("${LINE_COMMENT}")) ? "${LINE_COMMENT}" : "${BLOCK_COMMENT_END}";
-
+    let subject = subjects[line];
     let subjectLength = 0;
     // don't trim
-    if (trim && selection.isSingleLine) subject = subject.substring(leadingLength);
+    // if (trim && selection.isSingleLine) subject = subject.substring(leadingLength);
+    const re = new RegExp(`^\\s{${leadingLength}}`, 'm');
+    if (trim && selection.isSingleLine) subject = subject.replace(re, '');
     else if (!trim && !selection.isSingleLine) startText = startText.padStart(leadingLength + startText.length, ' ');
+    // else if (!trim && selection.isSingleLine) startText = startText.padStart(leadingLength + startText.length, ' ');
+
 
     if (subject) subjectLength = subject?.length;
     else subject = '';
@@ -167,6 +179,7 @@ async function _expandMultilines(editor: TextEditor, options: CommentBlockSettin
 
       // just resolve the \\U${selectedText} or \\L${CLIPBOARD} part of the subject
       // don't care about the 0 arguments below as they don't impact selectedText/clipBoard resolution
+      // TODO: should this just selection?
       let resolved = await resolveVariables(match[0], editor.selection, 0, 0, caller);
       splitText = resolved.split(/\r?\n/);
       // splitText = _removeCommonLeadingWhiteSpace(splitText);  // do even if splitText.length = 1

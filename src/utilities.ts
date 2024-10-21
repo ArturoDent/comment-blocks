@@ -274,8 +274,10 @@ export async function replaceAsync2 (toResolve: string, regex: RegExp, asyncFn: 
   if (matches) {
     let replacement;
 
-    if (asyncFn === resolveSpecialVariables) replacement = await asyncFn(matches[0]);
-    else replacement = await asyncFn(matches[0], caller, line);
+    // if (asyncFn === resolveSpecialVariables) replacement = await asyncFn(matches[0]);
+    if (asyncFn === resolveSpecialVariables) replacement = await asyncFn(matches[0], selection);
+    // else replacement = await asyncFn(matches[0], caller, line);
+    else replacement = await asyncFn(matches[0], caller, line, selection);
 
     toResolve = toResolve.replace(matches[0], replacement);
     toResolve = await replaceAsync2(toResolve, regex, asyncFn, selection, matchIndex, caller, line);

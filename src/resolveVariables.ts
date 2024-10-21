@@ -120,7 +120,8 @@ export async function resolveVariables (resolve: string, selection: Selection, m
  * @param line - which line number of the block comment
  * @returns the resolved extension-defined variable
  */
-async function _resolveExtensionDefinedVariables (variableToResolve: string, caller: string, line: number): Promise<string> {
+// async function _resolveExtensionDefinedVariables (variableToResolve: string, caller: string, line: number): Promise<string> {
+async function _resolveExtensionDefinedVariables (variableToResolve: string, caller: string, line: number, selection: Selection): Promise<string> {
 
   const editor = window.activeTextEditor;
   if (!editor) return variableToResolve;
@@ -160,7 +161,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
 
       if (symbols) {
         const nextSymbol = Object.values(symbols).find(symbol => {
-          return symbol.range.start.isAfter(editor.selection.active);
+          // return symbol.range.start.isAfter(editor.selection.active); // TODO
+          return symbol.range.start.isAfter(selection.active); // TODO
         });
         if (nextSymbol) resolved = nextSymbol.name;
         else resolved = '';
@@ -174,7 +176,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
 
         if (symbols1) {
           const previousSymbol = Object.values(symbols1).find(symbol => {
-            return symbol.range.start.isBefore(editor.selection.active);
+            // return symbol.range.start.isBefore(editor.selection.active);  // TODO
+            return symbol.range.start.isBefore(selection.active);  // TODO
           });
           if (previousSymbol) resolved = previousSymbol.name;
           else resolved = '';
@@ -188,7 +191,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
 
       if (symbols2) {
         const thisFunction = Object.values(symbols2).findLast(symbol => {
-          return symbol.kind === SymbolKind.Function && symbol.range.start.isBefore(editor.selection.active);
+          // return symbol.kind === SymbolKind.Function && symbol.range.start.isBefore(editor.selection.active); // TODO
+          return symbol.kind === SymbolKind.Function && symbol.range.start.isBefore(selection.active); // TODO
         });
         // handle subFunctions here?
         if (thisFunction) resolved = thisFunction.name;
@@ -204,7 +208,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
 
       if (symbols3) {
         const thisFunction = Object.values(symbols3).find(symbol => {
-          return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(editor.selection.active);
+          // return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(editor.selection.active); // TODO
+          return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(selection.active); // TODO
         });
         // handle subFunctions here?  make a recursive function
         if (thisFunction) resolved = thisFunction.name;
@@ -227,7 +232,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
 
       if (symbols33) {
         const nextFunction = Object.values(symbols33).find(symbol => {
-          return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(editor.selection.active);
+          // return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(editor.selection.active); // TODO
+          return symbol.kind === SymbolKind.Function && symbol.range.start.isAfter(selection.active); // TODO
         });
         if (nextFunction) nextFunctionRange = nextFunction.selectionRange;  // next function range
         else resolved = '';
@@ -299,7 +305,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
 
       if (symbols4) {
         const thisFunction = Object.values(symbols4).find(symbol => {
-          return symbol.kind === SymbolKind.Function && symbol.range.contains(editor.selection.active);
+          // return symbol.kind === SymbolKind.Function && symbol.range.contains(editor.selection.active); // TODO
+          return symbol.kind === SymbolKind.Function && symbol.range.contains(selection.active); // TODO
         });
         if (thisFunction) resolved = thisFunction.name;
         else resolved = '';
@@ -315,7 +322,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
       if (symbols5) {
         const parentFunction = Object.values(symbols5).find(symbol => {
           // handles when you select beyond the range of a function
-          const intersection = editor.selection.intersection(symbol.range);
+          // const intersection = editor.selection.intersection(symbol.range);  // TODO
+          const intersection = selection.intersection(symbol.range);  // TODO
           if (intersection) return symbol.kind === SymbolKind.Function && symbol.range.contains(intersection);
           else return false;
         });
@@ -328,7 +336,8 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
           if (childFunctions) {  // only goes to one level deep, there could be child functions of child functions - ignored
             const myFunction = childFunctions.find(func => {
             // handles when you select beyond the range of a function
-              const intersection = editor.selection.intersection(func.range);
+              // const intersection = editor.selection.intersection(func.range); // TODO
+              const intersection = selection.intersection(func.range); // TODO
               if (intersection) return func.range.contains(intersection);
               else return false;
             });
@@ -642,14 +651,14 @@ async function _resolveSnippetVariables (variableToResolve: string, selection: S
  * @param line -
  * @returns the resolved string
  */
-export async function resolveExtensionDefinedVariables(replaceValue: string, caller: string, line: number): Promise<string> {
+export async function resolveExtensionDefinedVariables(replaceValue: string, caller: string, line: number, selection: Selection): Promise<string> {
 
   if (replaceValue === "") return replaceValue;
   let re = regexp.extensionNotGlobalRE;
 
   if (replaceValue !== null) {
 
-    let resolved = await _resolveExtensionDefinedVariables(replaceValue, caller, line);
+    let resolved = await _resolveExtensionDefinedVariables(replaceValue, caller, line, selection);
     const found = replaceValue.match(re);
 
     if (!found || !found.groups?.caseModifier) return resolved;
@@ -664,14 +673,14 @@ export async function resolveExtensionDefinedVariables(replaceValue: string, cal
  * @param replaceValue
  * @returns the resolved string
  */
-export async function resolveSpecialVariables(replaceValue: string): Promise<string> {
+export async function resolveSpecialVariables(replaceValue: string, selection: Selection): Promise<string> {
 
   if (replaceValue === "") return replaceValue;
   let re = regexp.caseModifierRE;
 
   if (replaceValue !== null) {
 
-    let resolved = await _resolveSpecialVariables(replaceValue);
+    let resolved = await _resolveSpecialVariables(replaceValue, selection); // TODO add selection
     const found = replaceValue.match(re);
 
     if (!found || !found.groups?.caseModifier) return resolved;
@@ -685,9 +694,10 @@ export async function resolveSpecialVariables(replaceValue: string): Promise<str
  * Resolve the special variables, like ${nextFunction}, etc.
  *
  * @param variableToResolve - the
+ * @param selection
  * @returns the resolved extension-defined variable
  */
-async function _resolveSpecialVariables (variableToResolve: string): Promise<string> {
+async function _resolveSpecialVariables (variableToResolve: string, selection: Selection): Promise<string> {
 
   const editor = window.activeTextEditor;
   if (!editor) return variableToResolve;
@@ -709,7 +719,6 @@ async function _resolveSpecialVariables (variableToResolve: string): Promise<str
       break;
 
     case "${selectedText}": case "${ selectedText }": case "${TM_SELECTED_TEXT}": case "${ TM_SELECTED_TEXT }":
-      let selection = editor.selection;
 
       if (selection.isEmpty) {
         const wordRange = document?.getWordRangeAtPosition(selection.start);
