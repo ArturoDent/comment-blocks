@@ -1,6 +1,9 @@
 # Comment Blocks
 
 * v0.5.0 Added `keepIndentation` option.  
+* v0.6.0 Added multiple selection support.  Removed `SnippetString` insertion - doesn't work with multiple selections.  
+
+-----------
 
 Create comment blocks like
 
@@ -101,21 +104,21 @@ There are many options and variables that can be used in creating these blocks.
 
 <div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
-| Option            | Type               | Default                     |                                          |
-|-------------------|--------------------|-----------------------------|------------------------------------------|
-|`selectCurrentLine`|boolean             |`true`                       |Should the current line(s) be selected    |
-|`keepIndentation`  |boolean             |`true`                       |Keep the indentation of selected text     |
-|                   |                    |                             |&emsp;or cursor position on an empty line |
-|                   |                    |                             |                                          |
-|`lineLength`       |integer or integer[]|80                           |Each line can be a different length       |
-|`startText`        |string or string[]  |`${BLOCK_COMMENT_START}`     |Text at the beginning of each line        |
-|`endText`          |string or string[]  |`${BLOCK_COMMENT_END}`       |Text at the end of each line *            |
-|`justify`          |string or string[]  |`center`                     |Where to put the subjects on each line    |
-|`gapLeft`          |integer or integer[]|3                            |Blank space to the left of the subject    |
-|`gapRight`         |integer or integer[]|3                            |Blank space to the right of the subject   |
-|`padLines`         |string or string[]  |`-`  of length 1             |Character to be used to pad each line     |
-|                   |                    |                             |                                          |
-|`subjects`         |string or string[]  |`["", "${selectedText}", ""]`|The subject for each line                 |
+| Option          |  Type              | Default                     |                                          |
+|-----------------|--------------------|-----------------------------|------------------------------------------|
+|selectCurrentLine|boolean             |`true`                       |Should the current line(s) be selected    |
+|keepIndentation  |boolean             |`true`                       |Keep the indentation of selected text     |
+|                 |                    |                             |&emsp;or cursor position on an empty line |
+|                 |                    |                             |                                          |
+|lineLength       |integer or integer[]|80                           |Each line can be a different length       |
+|startText        |string or string[]  |`${BLOCK_COMMENT_START}`     |Text at the beginning of each line        |
+|endText          |string or string[]  |`${BLOCK_COMMENT_END}`       |Text at the end of each line *            |
+|justify          |string or string[]  |`center`                     |Where to put the subjects on each line    |
+|gapLeft          |integer or integer[]|3                            |Blank space to the left of the subject    |
+|gapRight         |integer or integer[]|3                            |Blank space to the right of the subject   |
+|padLines         |string or string[]  |`-`  of length 1             |Character to be used to pad each line     |
+|                 |                    |                             |                                          |
+|subjects         |string or string[]  |`["", "${selectedText}", ""]`|The subject for each line                 |
 
 </div>
 <br/>
@@ -126,7 +129,7 @@ If you set the default for `startText` to `${LINE_COMMENT}` (in your settings) t
 
 * **Important**: It is recommended to use `selectCurrentLine` as `true` (its default).  It will be applied regardless even if set to `false` for multiline selections.  
 
-`keepIndentation` will attempt to start the created comment at the indent level of the selected text or the cursor on a line with only whitespace.  And have the comment end at your desired `lineLength` column.
+`keepIndentation` will attempt to start the created comment at the indent level of the selected text or the cursor.  And have the comment end at your desired `lineLength` column.
 
 The number of lines of the comment block is determined by how many `subjects` you have, except when you use `${selectedText}` and `${CLIPBOARD}`.  The number of subject lines for `${selectedText}` and `${CLIPBOARD` are expanded by their length.  So if the selected text is 3 lines long, the number of subjects represented by `${selectedText}` is 3 lines in addition to any other subject lines you may have.
 
@@ -269,21 +272,21 @@ If the clipBoard or the selected text contains `${relativeFile} ${fileBasename} 
 
 <div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
-| Transform | Meaning                 | Result      | Usage                |
-|:---------:|-------------------------|-------------|:--------------------:|
-|`\\U`      | UPPERCASE ALL           | MY_NAME     | `\\U${someVariable}` |
-|`\\u`      | Capitalize first letter | My_name     | `\\u${someVariable}` |
-|`\\L`      | lowercase all           | my_name     | `\\L${someVariable}` |
-|`\\l`      | lowerCase first letter  | my_Name     | `\\l${someVariable}` |
-|`\\P`      | PascalCase              | MyName      | `\\P${someVariable}` |
-|`\\C`      | camelCase               | myName      | `\\C${someVariable}` |
-|`\\T`      | TitleCase               | MyName      | `\\T${someVariable}` |
-|           |                         |             |                      |
-|`\\S`      | SCREAMING_SNAKE_CASE    | MY_NAME     | `\\S${someVariable}` |
-| `\\s`     | snake_case              | my_name     | `\\s${someVariable}` |
-|           |                         |             |                      |
-|`\\K`      | SCREAMING-KEBAB-CASE    | MY-NAME     | `\\K${someVariable}` |
-|`\\k`      | kebab-case              | my-name     | `\\k${someVariable}` |
+| Transform | Meaning               | Result      | Usage                |
+|:---------:|-----------------------|-------------|:--------------------:|
+|\\U      | UPPERCASE ALL           | MY_NAME     | `\\U${someVariable}` |
+|\\u      | Capitalize first letter | My_name     | `\\u${someVariable}` |
+|\\L      | lowercase all           | my_name     | `\\L${someVariable}` |
+|\\l      | lowerCase first letter  | my_Name     | `\\l${someVariable}` |
+|\\P      | PascalCase              | MyName      | `\\P${someVariable}` |
+|\\C      | camelCase               | myName      | `\\C${someVariable}` |
+|\\T      | TitleCase               | MyName      | `\\T${someVariable}` |
+|         |                         |             |                      |
+|\\S      | SCREAMING_SNAKE_CASE    | MY_NAME     | `\\S${someVariable}` |
+|\\s      | snake_case              | my_name     | `\\s${someVariable}` |
+|         |                         |             |                      |
+|\\K      | SCREAMING-KEBAB-CASE    | MY-NAME     | `\\K${someVariable}` |
+|\\k      | kebab-case              | my-name     | `\\k${someVariable}` |
 
 </div>
 </br>
@@ -352,96 +355,82 @@ There is a **precedence** to the options:
 
 <div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
-|                                |  Snippet equivalent             |  |
-|--------------------------------|---------------------------------|--|
+|                              |  Snippet equivalent           |  |
+|------------------------------|-------------------------------|--|
 | [Launch/task Variables reference](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables) | [Snippet Variables reference](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_variables) |  |
-| `${selectedText}`              | `${TM_SELECTED_TEXT}`           |  |
-|                                |                                 |  |
-|                                | `${CLIPBOARD}`                  |  |
-|                                |                                 |  |
-| `${file}`                      | `${TM_FILEPATH}`                |  |
-| `${relativeFile}`              | `${RELATIVE_FILEPATH}`          |  |
-| `${fileBasename}`              | `${TM_FILENAME}`                |  |
-| `${fileBasenameNoExtension}`   | `${TM_FILENAME_BASE}`           |  |
-| `${fileExtname}`               |                                 |  |
-| `${fileDirname}`               | `${TM_DIRECTORY}`               |  |
-| `${fileWorkspaceFolder}`       |                                 |  |
-| `${workspaceFolder}`           |                                 |  |
-|                                | `${WORKSPACE_FOLDER}`           |  |
-| `${relativeFileDirname}`       |                                 |  |
-| `${workspaceFolderBasename}`   |                                 |  |
-| `${pathSeparator}` or `${\/}`  |                                 |  |
-| `${matchIndex}`                | `${CURSOR_INDEX}`               |  |
-| `${matchNumber}`               | `${CURSOR_NUMBER}`              |  |
-| `${lineIndex}`                 | `${TM_LINE_INDEX}`              |  |
-| `${lineNumber}`                | `${TM_LINE_NUMBER}`             |  |
+| ${selectedText}              | ${TM_SELECTED_TEXT}           |  |
+|                              |                               |  |
+|                              | ${CLIPBOARD}                  |  |
+|                              |                               |  |
+| ${file}                      | ${TM_FILEPATH}                |  |
+| ${relativeFile}              | ${RELATIVE_FILEPATH}          |  |
+| ${fileBasename}              | ${TM_FILENAME}                |  |
+| ${fileBasenameNoExtension}   | ${TM_FILENAME_BASE}           |  |
+| ${fileExtname}               |                               |  |
+| ${fileDirname}               | ${TM_DIRECTORY}               |  |
+| ${fileWorkspaceFolder}       |                               |  |
+| ${workspaceFolder}           |                               |  |
+|                              | ${WORKSPACE_FOLDER}           |  |
+| ${relativeFileDirname}       |                               |  |
+| ${workspaceFolderBasename}   |                               |  |
+| ${pathSeparator} or ${\/}    |                               |  |
+| ${matchIndex}                | ${CURSOR_INDEX}               |  |
+| ${matchNumber}               | ${CURSOR_NUMBER}              |  |
+| ${lineIndex}                 | ${TM_LINE_INDEX}              |  |
+| ${lineNumber}                | ${TM_LINE_NUMBER}             |  |
 
 </div>
 </br>
 
 <div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
-|  Other Snippet variables      |  |
-|-------------------------------|--|
-| `${BLOCK_COMMENT_START}`      | Resolved based on the current language |
-| `${BLOCK_COMMENT_END}`        | Resolved based on the current language |
-| `${LINE_COMMENT}`             | Resolved based on the current language |
-|                               |  |
-| `${TM_CURRENT_LINE}`          |  |
-| `${TM_CURRENT_WORD}`          |  |
-| `${CURRENT_YEAR}`             |  |
-| `${CURRENT_YEAR_SHORT}`       |  |
-| `${CURRENT_MONTH}`            |  |
-| `${CURRENT_MONTH_NAME}`       |  |
-| `${CURRENT_MONTH_NAME_SHORT}` |  |
-| `${CURRENT_DATE}`             |  |
-| `${CURRENT_DAY_NAME}`         |  |
-| `${CURRENT_DAY_NAME_SHORT}`   |  |
-| `${CURRENT_HOUR}`             |  |
-| `${CURRENT_MINUTE}`           |  |
-| `${CURRENT_SECOND}`           |  |
-| `${CURRENT_SECONDS_UNIX}`     |  |
-| `${CURRENT_TIMEZONE_OFFSET}`  |  |
-| `${RANDOM}`                   |  |
-| `${RANDOM_HEX} `              |  |
+|  Other Snippet variables    |  |
+|-----------------------------|--|
+| ${BLOCK_COMMENT_START}      | Resolved based on the current language |
+| ${BLOCK_COMMENT_END}        | Resolved based on the current language |
+| ${LINE_COMMENT}             | Resolved based on the current language |
+|                             |  |
+| ${TM_CURRENT_LINE}          |  |
+| ${TM_CURRENT_WORD}          |  |
+| ${CURRENT_YEAR}             |  |
+| ${CURRENT_YEAR_SHORT}       |  |
+| ${CURRENT_MONTH}            |  |
+| ${CURRENT_MONTH_NAME}       |  |
+| ${CURRENT_MONTH_NAME_SHORT} |  |
+| ${CURRENT_DATE}             |  |
+| ${CURRENT_DAY_NAME}         |  |
+| ${CURRENT_DAY_NAME_SHORT}   |  |
+| ${CURRENT_HOUR}             |  |
+| ${CURRENT_MINUTE}           |  |
+| ${CURRENT_SECOND}           |  |
+| ${CURRENT_SECONDS_UNIX}     |  |
+| ${CURRENT_TIMEZONE_OFFSET}  |  |
+| ${RANDOM}                   |  |
+| ${RANDOM_HEX}               |  |
 
 </div>
 </br>
 
 You can use the above launch/task-type variables and snippet variables.  Many of these produce the same output but may have different names.  It doesn't matter which you use.
 
-One reason why you might want to occaisonally use the snippet form of a variable is to make it into a transform, for example:
-
-```jsonc
-// part of a comment-blocks.createBlock keybinding in your keybindings.json
-
-"subjects": [
-  "",
-  "${TM_SELECTED_TEXT/.*-(.*)/$1/}",  // transform the selected text, would NOT work with ${selectedText}
-  ""
-]
-```
-
-This would get and keep only that part of the selected text after a `-`.  You can do any snippet transform like this that you could in a regular snippet.  Just be aware that the actual transform is done by vscode upon insertion of the text, thus this extension cannot account for its length and you would have to adjust for the padding yourself afterwards.
-
 -----------------------
 
 <div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
-|  Extension variables   | These are defined by this extension only                               |
-|------------------------|------------------------------------------------------------------------|
-| `${getInput}`          | Opens an input box to get the content, can be used multiple times      |
-|                        |                                                                        |
-| `${previousFunction}`  | The previous function name - somewhere above the cursor                |
-| `${nextFunction}`      | The next function name - somewhere after the cursor                    |
-| `${parentFunction}`    | Function name of the parent (i.e., the outer) function                 |
-| `${thisFunction}`      | function name of the current function, may be within an outer function |
-|                        |                                                                        |
-| `${incomingCalls}`     | Incoming function calls to the next function, with line numbers        |
-| `${outgoingCalls}`     | Outgoing function calls to the next function                           |
-|                        |                                                                        |
-| `${nextSymbol}`        | Next symbol name, may be a variable, function, etc. name               |
-| `${previousSymbol}`    | Previous symbol name.  Symbol names are language-dependent             |
+|  Extension variables | These are defined by this extension only                               |
+|----------------------|------------------------------------------------------------------------|
+| ${getInput}          | Opens an input box to get the content, can be used multiple times      |
+|                      |                                                                        |
+| ${previousFunction}  | The previous function name - somewhere above the cursor                |
+| ${nextFunction}      | The next function name - somewhere after the cursor                    |
+| ${parentFunction}    | Function name of the parent (i.e., the outer) function                 |
+| ${thisFunction}      | function name of the current function, may be within an outer function |
+|                      |                                                                        |
+| ${incomingCalls}     | Incoming function calls to the next function, with line numbers        |
+| ${outgoingCalls}     | Outgoing function calls to the next function                           |
+|                      |                                                                        |
+| ${nextSymbol}        | Next symbol name, may be a variable, function, etc. name               |
+| ${previousSymbol}    | Previous symbol name.  Symbol names are language-dependent             |
 
 </div>
 </br>
@@ -926,9 +915,61 @@ fileBasenameNoExtension = ${fileBasenameNoExtension}
 
 -------------
 
+```jsonc
+{
+  "key": "alt+c",
+  "command": "comment-blocks.createBlock",
+  "args": {
+      // "keepIndentation": false,    // default is true
+      "selectCurrentLine": false,  // default is true
+      "lineLength": 60,
+      "justify": "right",
+      "startText": "${LINE_COMMENT}",
+      "endText": "${LINE_COMMENT}",
+      "subjects": [
+          "${selectedText}",
+          "${nextFunction}",
+          ""
+      ],
+      "padLines": "/",
+      "gapLeft": 2,
+      "gapRight": 2
+  }
+}
+```
+
+produces
+
+```javascript
+const aa = 12;    //////////////////////////////////////////
+                  /////////////////////////////  func_00  //
+                  //////////////////////////////////////////
+
+function func_00() {
+  func_AA();
+}
+```
+
+with "const aa = 12;&emsp;&emsp;&emsp; (cursor here)".  So the indentation of the cursor was kept and the line was NOT selected.
+
+```jsonc
+      "keepIndentation": false,    // default is true
+      "selectCurrentLine": false,  // default is true
+```
+
+would have produced
+
+```javascript
+const aa = 12;    //////////////////////////////////////////
+///////////////////////////////////////////////  func_00  //
+////////////////////////////////////////////////////////////
+```
+
+-------------
+
 ## Known Issues
 
-Only the **primary** selection is used and **REPLACED**.  That is the first one you made, not necessarily the one nearer the top of the file.
+The extension will currently remove line comment characters from the selected text, including a multiline selection that has a line comment somewhere in it.
 
 `\\U${CLIPBOARD}` or `\\U${selectedText}` do not work (will not resolve) any variables included in the clipboard or selected text.  `${CLIPBOARD}` or `${selectedText}` (i.e., with no case modifiers) do resolve such included variables.  
 
@@ -971,3 +1012,7 @@ Using `${LINE_COMMENT}` in other places will result in errors.
 
 0.5.0 Add `keepIndentation` option.  
 &emsp;&emsp; 0.5.2 Address files that don't support `lineComment`, but it is used in a keybinding.  
+
+0.6.0 Add multiple selection support.  
+&emsp;&emsp; Work on various combinations of `keepIndentation and `selectCurrentLine`.  
+&emsp;&emsp; Removed SnippetString support - doesn't work with multiple selections.  

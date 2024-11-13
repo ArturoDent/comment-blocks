@@ -24,9 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand('comment-blocks.createBlock', async (args: CommentBlockSettings) => {
 
     const editor = vscode.window.activeTextEditor;
-    // let   selection = editor?.selection;
     const document = editor?.document;
-    // if (!editor || !document || !selection) return;
     if (!editor || !document) return;
 
     if (!global.comments || global.previousLanguage !== document.languageId) {
@@ -34,17 +32,10 @@ export async function activate(context: vscode.ExtensionContext) {
       global.previousLanguage = document.languageId;
     }
 
-    let snippetEdits: Array<vscode.SnippetTextEdit> = [];
+    let snippetEdits: Array<vscode.TextEdit> = [];
     let workspaceEdit: vscode.WorkspaceEdit = new vscode.WorkspaceEdit();
 
-    // let index = 0;
     for await (let selection of editor.selections) {
-
-    // let   selection = editor?.selection;const [key, value]
-
-      // reset comments only if different languageId ( and TODO: if didn't skip language )
-      // if (global.previousLanguage !== document.languageId) global.comments = undefined;
-      // global.previousLanguage = document.languageId;
 
       let settings = await getSettings(document);
 
@@ -81,72 +72,91 @@ export async function activate(context: vscode.ExtensionContext) {
 
       let keepIndentation = settings.keepIndentation;
       let trim = false;
+      let leadingWhitespace = 0;
 
       let leadingLength = 0;  // set leading whiteSpace length, to subtract from lineLength later
 
+      // remove comment characters
       // TODO: file an issue, for css (which has no lineComment) the below will ADD a block comment if there is none!!
-      // remove leading comment characters from all selected lines, the clipBoard is unaffected
-      // temporary workaround:
-      // if (document.languageId !== 'css' && document.languageId !== 'html' && !document.lineAt(selection.active.line).isEmptyOrWhitespace)
-      if (global.comments?.lineComment && !document.lineAt(selection.active.line).isEmptyOrWhitespace)
-        await vscode.commands.executeCommand('editor.action.removeCommentLine');
+      if (global.comments?.lineComment && !document.lineAt(selection.active.line).isEmptyOrWhitespace) {
+        if (selectCurrentLine)
+          await vscode.commands.executeCommand('editor.action.removeCommentLine');
+        else {  // don't remove comment unless entire comment is selected (when selectCurrentLine = false)
+          const lineComment = global.comments.lineComment.replace(/([\*/{}()])/g, '\\$1');
+          const re = new RegExp(`(${lineComment})(\\s?)`);
+          const match = document.getText(selection).match(re);
+          
+          if (match && match.index !== undefined) {
+            const selectionStartIndex = selection.start.character;
+            const lineCommentStartRange = new vscode.Range(
+              selection.start.line, selectionStartIndex + match.index,
+              selection.start.line, selectionStartIndex + match.index + match[1].length + match[2].length);
+            
+            const workspaceEdit = new vscode.WorkspaceEdit();
+            workspaceEdit.set(document.uri, [new vscode.TextEdit(lineCommentStartRange, '')]);
+            await vscode.workspace.applyEdit(workspaceEdit);
+            
+            // can't use below - applies to all lines with a cursor
+            // await vscode.commands.executeCommand('editor.action.removeCommentLine');
+          }
+        }
+      }
         
-      else if (global.comments?.blockComment) {
-        // have to escape characters in the blockStart/End
+      else if (global.comments?.blockComment) {   // like css, html, etc.
+        // have to escape characters in the blockStart/End for the regexp
         const blockStart = global.comments.blockComment[0].replace(/([\*/{}()])/g, '\\$1');
         const blockEnd = global.comments.blockComment[1].replace(/([\*/{}]())/g, '\\$1');
 
-        const re = new RegExp(`^\\s*${blockStart}.*${blockEnd}\\s*$`, 'm');
-        if (document.lineAt(selection.active.line).text.match(re)) {
-          await vscode.commands.executeCommand('editor.action.blockComment');
+        const re = new RegExp(`(${blockStart})(\\s?)(.*)(\\2)(${blockEnd})`);
+        let match;
+        
+        if (selectCurrentLine) match = document.lineAt(selection.active.line).text.match(re);
+        else match = document.getText(selection).match(re);
+        
+        if (match && match.index !== undefined) {
+          
+          let selectionStartIndex = 0;
+          if (selectCurrentLine === false) selectionStartIndex = selection.start.character;
+          
+          const blockStartRange = new vscode.Range(
+            selection.start.line, selectionStartIndex + match.index,
+            selection.start.line, selectionStartIndex + match.index + match[1].length + match[2].length);
+          
+          const blockEndCharacterStart = selectionStartIndex + match.index + match[1].length + match[2].length + match[3].length;
+          const blockEndCharacterEnd = blockEndCharacterStart + match[4].length + match[5].length;
+          
+          const blockEndRange = new vscode.Range(
+            selection.start.line, blockEndCharacterStart,
+            selection.start.line, blockEndCharacterEnd);
+          
+          const workspaceEdit = new vscode.WorkspaceEdit();
+          workspaceEdit.set(document.uri, [new vscode.TextEdit(blockEndRange, ''), new vscode.TextEdit(blockStartRange, '')]);
+          await vscode.workspace.applyEdit(workspaceEdit);
+          // may need to be in this order, delete end first
         }
       }
 
-      // check if is commented  /^\s*/*.**/\s*$/m:
-
+      // reset each selection
       if (selection.isSingleLine && selectCurrentLine === true) {      // selection is single line
+        
+        // set selection to 0 - lineEnd
+        let lineEnd = document.lineAt(selection.active.line).range.end;
+        let lineStart = new vscode.Position(selection.active.line, 0);
+        selection = new vscode.Selection(lineStart, lineEnd);
+        leadingLength = document.lineAt(selection.active.line).firstNonWhitespaceCharacterIndex;
 
-        if (keepIndentation) {  // goto EOL and cursorSelectHome
-
-          // if whole line is empty (except for some leading whiteSpace)
-          //               firstNonWhitespaceCharacterIndex                 
-          // The offset of the first character which is not a whitespace character as defined by /\s /. 
-          // Note that if a line is all whitespace the length of the line is returned.
-          if (document.lineAt(selection.active.line).firstNonWhitespaceCharacterIndex === selection.active.character)
-            leadingLength = selection.active.character;
-          else {
-            // TODO: do this with cursor movements/selections
-            // make this selection
-            let lineEnd = document.lineAt(selection.active.line).range.end;
-            let lineStart = new vscode.Position(selection.active.line, document.lineAt(selection.active.line).firstNonWhitespaceCharacterIndex);
-            // await vscode.commands.executeCommand('cursorLineEnd');
-            // await vscode.commands.executeCommand('cursorHomeSelect');
-            // selection = new vscode.Selection(editor.selections[index].anchor, editor.selections[index].active);
-            selection = new vscode.Selection(lineStart, lineEnd);
-            // leadingLength = selection.active.character;
-            leadingLength = document.lineAt(selection.active.line).firstNonWhitespaceCharacterIndex;
-          }
-        }
-        else {
-          const active = selection.active;
-          const lineLength = document.lineAt(active.line).text.length;
-          // editor.selection = new vscode.Selection(new vscode.Position(active.line, 0), new vscode.Position(active.line, lineLength));
-          selection = new vscode.Selection(new vscode.Position(active.line, 0), new vscode.Position(active.line, lineLength));
-          // leadingLength = getCommonLeadingWhiteSpace(document.getText(editor.selection));
-          leadingLength = getCommonLeadingWhiteSpace(document.getText(selection));
-          trim = true;
-        }
+        trim = true;
       }
 
       else if (selection.isSingleLine && selectCurrentLine === false) {      // selection is single line
         if (keepIndentation) {
-          // leadingLength = editor.selection.active.character;
-          leadingLength = selection.active.character;
+          leadingWhitespace = document.lineAt(selection.active.line).firstNonWhitespaceCharacterIndex;
+          leadingLength = selection.start.character;        
+          trim = true;
         }
         else {
-          // leadingLength = getCommonLeadingWhiteSpace(document.getText(editor.selection));
-          leadingLength = getCommonLeadingWhiteSpace(document.getText(selection));
-          trim = true;
+          leadingWhitespace = document.lineAt(selection.active.line).firstNonWhitespaceCharacterIndex;
+          leadingLength = selection.start.character;        
         }
       }
 
@@ -158,18 +168,14 @@ export async function activate(context: vscode.ExtensionContext) {
         const anchorLineLength = document.lineAt(anchor.line).text.length;
 
         if (selection.isReversed)
-          // editor.selection = new vscode.Selection(new vscode.Position(anchor.line, anchorLineLength), new vscode.Position(active.line, 0));
           selection = new vscode.Selection(new vscode.Position(anchor.line, anchorLineLength), new vscode.Position(active.line, 0));
         else if (!selection.isReversed)
-          // editor.selection = new vscode.Selection(new vscode.Position(anchor.line, 0), new vscode.Position(active.line, activeLineLength));
           selection = new vscode.Selection(new vscode.Position(anchor.line, 0), new vscode.Position(active.line, activeLineLength));
 
         if (keepIndentation) {
-          // leadingLength = getCommonLeadingWhiteSpace(document.getText(editor.selection).split(/\r?\n/));
           leadingLength = getCommonLeadingWhiteSpace(document.getText(selection).split(/\r?\n/));
         }
         else {
-          // leadingLength = getCommonLeadingWhiteSpace(document.getText(editor.selection).split(/\r?\n/));
           leadingLength = getCommonLeadingWhiteSpace(document.getText(selection).split(/\r?\n/));
           trim = true;
         }
@@ -177,15 +183,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
       else if (!selection.isSingleLine && selectCurrentLine === false) {}      // not used
 
-      // const snippet: vscode.SnippetString = await build(editor, combinedOptions, editor.selection, matchIndex, leadingLength, trim);
-      const snippet: vscode.SnippetString = await build(editor, combinedOptions, selection, matchIndex, leadingLength, trim);
-      // await editor.insertSnippet(snippet, editor.selection);
-
-      // try making this a WorkspaceEdit TODO
-      snippetEdits.push(new vscode.SnippetTextEdit(selection, snippet));
-
-      // await editor.insertSnippet(snippet, selection);
-      // index++;
+      const snippet: string = await build(editor, combinedOptions, selection, matchIndex, leadingLength, trim, leadingWhitespace, selectCurrentLine ?? true);
+      snippetEdits.push(new vscode.TextEdit(selection, snippet));
     }
 
     workspaceEdit.set(document.uri, snippetEdits);
