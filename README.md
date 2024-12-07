@@ -2,6 +2,7 @@
 
 * v0.5.0 Added `keepIndentation` option.  
 * v0.6.0 Added multiple selection support.  Removed `SnippetString` insertion - doesn't work with multiple selections.  
+* v0.7.0 Added a `lineLength` option of `minimum + nn`.  
 
 -----------
 
@@ -31,6 +32,17 @@ function some_function_next() {}   // doesn't have to be on prior line
 ```
 
 ---------------------
+
+```javascript
+/*******************************
+* function someFuncName() {    *
+*   const a = 12;              *
+*   not_howdy(a);              *
+* }                            *
+********************************/
+```
+
+---------------------  
 
 Use the `MARK:` syntax for minimap headers:
 
@@ -111,6 +123,9 @@ There are many options and variables that can be used in creating these blocks.
 |                 |                    |                             |&emsp;or cursor position on an empty line |
 |                 |                    |                             |                                          |
 |lineLength       |integer or integer[]|80                           |Each line can be a different length       |
+|                 |string              |                             |"minimum" or "minimum + nn" ( 2-digit integer) |
+|                 |                    |                             |"minimum' only works with justify:left   |
+|                 |                    |                             |                                          |
 |startText        |string or string[]  |`${BLOCK_COMMENT_START}`     |Text at the beginning of each line        |
 |endText          |string or string[]  |`${BLOCK_COMMENT_END}`       |Text at the end of each line *            |
 |justify          |string or string[]  |`center`                     |Where to put the subjects on each line    |
@@ -668,6 +683,74 @@ or
 
 ```jsonc
 {
+  "key": "alt+c",
+  "command": "comment-blocks.createBlock",
+  "args": {
+      "lineLength": "minimum+3",
+      "justify": "left",            // minimum... only works with justify:left currwntly
+      "startText": ["${BLOCK_COMMENT_START}", "* ", "**"],
+      "endText": ["*","*", "${BLOCK_COMMENT_END}"],
+      "subjects": [
+        "",                         // first line
+        "${selectedText}",          // all the selected text lines
+        ""                          // last line
+      ],
+      "padLines": ["*", " ", "*"],  // so first and last lines are padded with `*`
+                                    // and the selected lines are padded with spaces
+      "gapLeft": 0,
+      "gapRight": 0
+  }
+}
+```
+
+produces
+
+```javascript
+/*******************************
+* function someFuncName() {    *
+*   const a = 12;              *
+*   not_howdy(a);              *
+* }                            *
+********************************/
+```
+
+The above keybinding uses `"lineLength": "minimum+3",`.  This means that a `lineLength` will be taken as the longest line of the selection.  And the `3` will be added to that.  You can add any integer to the mimimum or just use `"minimum"` to have no space added after the longest line like this:
+
+```javascript
+/***************************
+* function someFuncName() {*
+*   const a = 12;          *
+*   not_howdy(a);          *
+* }                        *
+****************************/
+```
+
+To pad selected lines with spaces to a set amount beyond the longest line you could use this keybinding:
+
+```jsonc
+// add 10 spaces to the end of the longest line and add spaces to all other lines to match the ends
+{
+  "key": "alt+c",
+  "command": "comment-blocks.createBlock",
+  "args": {
+      "lineLength": "minimum+10",  
+      "justify": "left",
+      "startText": "",
+      "endText": "",
+      "subjects": [
+        "${selectedText}",
+      ],
+      "padLines": " ",  
+      "gapLeft": 0,
+      "gapRight": 0
+  }
+}
+```
+
+-----------------
+
+```jsonc
+{
   "key": "alt+b",
   "command": "comment-blocks.createBlock",
   "args": {
@@ -997,6 +1080,8 @@ Using `${LINE_COMMENT}` in other places will result in errors.
 * Consider moving `${getInput}` and `${default}` up to `getSpecialVariables()`.  
 * Investigate removing line or block comments from `${CLIPBOARD}`.  Remove block comments from `${selectedText}`  
 * Consider making a Command Palette command for each keybinding.  
+* Paste a multiline selection/clipBoard aligned at end of comment - `endText`.  
+* Run `postCommands`.  
 
 ## Release Notes
 
@@ -1016,3 +1101,5 @@ Using `${LINE_COMMENT}` in other places will result in errors.
 0.6.0 Add multiple selection support.  
 &emsp;&emsp; Work on various combinations of `keepIndentation and `selectCurrentLine`.  
 &emsp;&emsp; Removed SnippetString support - doesn't work with multiple selections.  
+
+0.7.0 Added a `lineLength` option of minimum.  

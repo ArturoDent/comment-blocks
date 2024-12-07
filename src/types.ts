@@ -1,6 +1,4 @@
 
-
-
 export type LanguageComments = {
   lineComment?: string,
   blockComment?: string[]
@@ -9,7 +7,8 @@ export type LanguageComments = {
 export type CommentBlockSettings = {
   selectCurrentLine?: boolean,
   keepIndentation: boolean,
-  lineLength: number | Array<number>,
+  // 'minimum + 10'
+  lineLength: number | Array<number> | string,
   startText: string | Array<string>,
   endText: string | Array<string>,
   justify: string | Array<string>,

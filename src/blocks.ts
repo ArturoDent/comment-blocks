@@ -76,7 +76,9 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
   _equalizeSubjectLengths(options);
 
   let str = '';
-
+  const maxLineLength = await _getMaximumLineLength(editor, selection);
+  let doTrimEnd = false;
+  
   for (let line = 0; line < numberOfLines; line++) {
 
     // set these variable names to each option[line] value
@@ -85,7 +87,24 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
       Object.entries(options).map((option) => {
         if (option[0] !== 'selectCurrentLine' && option[0] !== 'keepIndentation') return (option[1] as any)[line];
       });
-
+    
+    const reMinimum = /^minimum(\s*\+\s*(?<offset>\d\d?))?$/;
+    let minimumMatch;
+    
+    if (typeof lineLength === 'string') minimumMatch = lineLength.match(reMinimum);
+    if (minimumMatch && minimumMatch.groups?.offset) {
+      const func = new Function('maxLineLength', 'minimumMatch', 'return maxLineLength + Number(minimumMatch.groups?.offset)');
+      lineLength = func(maxLineLength, minimumMatch);
+    }
+    else if (lineLength === 'minimum') {
+      lineLength = maxLineLength;
+    }
+    
+    if (minimumMatch) {
+      lineLength += startText.length + endText.length;
+      doTrimEnd = true;
+    }
+    
     // adjust lineLength for leading whitespace when selecting text with white space ahead of it
     if (selection.isSingleLine && !selectCurrentLine && line === 0) lineLength -= leadingLength;
     
@@ -99,7 +118,10 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     padLine = padLine || "";
     justify = justify || "";
 
-    let subject = subjects[line];
+    let subject: string;
+    if (doTrimEnd) subject = subjects[line].trimEnd();  // only if 'minimum'
+    else subject = subjects[line];
+      
     let subjectLength = 0;
     const re = new RegExp(`^\\s{${leadingLength}}`, 'm');
     
@@ -133,12 +155,25 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     else if (justify === 'right') {
       padLeftLength = Math.ceil(lineLength - startText.length - gapLeft - subjectLength - gapRight - endText.length);
       padRightLength = 0;      // so ignored by justify RIGHT
+
+      if (minimumMatch && minimumMatch.groups?.offset) {
+        padLeftLength -= Number(minimumMatch.groups?.offset);
+        padRightLength += Number(minimumMatch.groups?.offset);
+      }
     }
 
     else  {  // if (justify === 'center' || justify === '')
       // to put the extra filler (if length is not an integer) before the gap, using ceil and floor
+      // TODO: unless 'minimumMatch' or minimum, how to modify for these?
+
       padLeftLength = Math.ceil(lineLength / 2 - subjectLength / 2 - gapLeft - startText.length);
       padRightLength = Math.floor(lineLength / 2 - subjectLength / 2 - gapRight - endText.length);
+      
+      // if (minimumMatch && minimumMatch.groups?.offset) {
+      //   // padLeftLength -= Number(minimumMatch.groups?.offset);
+      //   lineLength += Number(minimumMatch.groups?.offset);
+      //   padRightLength += Number(minimumMatch.groups?.offset);
+      // }
     }
 
     str += startText.padEnd(padLeftLength + startText.length, padLine || ' ')
@@ -264,6 +299,42 @@ async function _expandMultilines(editor: TextEditor, options: CommentBlockSettin
 //     return minimum;
 //   }
 // }
+
+
+/**
+ * Get the length of the longest selected line
+ * @param splitText 
+ * @returns 
+ */
+async function _getMaximumLineLength(editor: TextEditor, selection: Selection): Promise<number> {
+  
+  let splitText;
+  let selectedText = editor.document.getText(selection);
+  
+  if (selection.isSingleLine) {
+    splitText = selectedText.trimEnd();
+    return splitText.length;
+  }
+  else splitText = selectedText.split('\n');
+  
+  let maximum: number;
+
+  // if only empty lines, return 0 as the maximum
+  const firstNonEmptyLine = splitText.find(line => line.length);
+  if (!firstNonEmptyLine) return 0;
+
+  maximum = splitText[0].trimEnd().length;
+  
+  splitText.forEach(line => {
+    let lineTrimmedLength = line.trimEnd().length;
+
+    if (lineTrimmedLength > maximum) {
+      maximum = lineTrimmedLength;
+    }
+  });
+
+  return maximum;    
+}
 
 
 /**

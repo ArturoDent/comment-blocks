@@ -78,7 +78,7 @@
               },
               "lineLength": {
                 "order": 2,
-                "description": "Number of total characters in each line.",
+                "description": "Number of total characters in each line or or 'minimum' or minimum + nn'.",
                 "oneOf": [
                   {
                     "type": "integer",
@@ -86,7 +86,8 @@
                   },
                   {
                     "type": "string",
-                    "const": "${getInput}"
+                    "pattern": "^minimum(\\s*\\+\\s*\\d\\d?)?$",
+                    "maxLength": 12
                   },
                   {
                     "type": "array",
@@ -98,7 +99,8 @@
                         },
                         {
                           "type": "string",
-                          "const": "${getInput}"
+                          "pattern": "^minimum(\\s*\\+?\\s*\\d\\d?)?$",
+                          "maxLength": 12
                         }
                       ]
                     }

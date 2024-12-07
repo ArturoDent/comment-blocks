@@ -49,23 +49,32 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
           if (curLocation?.previousNode && linePrefix.endsWith(`"${ curLocation.previousNode.value }"`)) return undefined;
 
           const stringProps = ["startText", "endText", "subjects"];
-          const numbersProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
+          // const numbersProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
+          const numbersProps = ["gapLeft", "gapRight"];  // these get number variable completions
+          const lineLengthProp = ["lineLength"];
+          let argCompletions: Array<CompletionItem> | undefined;
 
           if (stringProps.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
-            const argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[2] as string);
-            if (argCompletions) return argCompletions;
-            else return undefined;
+            argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[2] as string);
+            // if (argCompletions) return argCompletions;
+            // else return undefined;
           }
           else if (numbersProps.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
-            const argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[2] as string);
-            if (argCompletions) return argCompletions;
-            else return undefined;
+            argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[2] as string);
+            // if (argCompletions) return argCompletions;
+            // else return undefined;
           }
+          else if (lineLengthProp.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
+            argCompletions = _completeLineLengthArgs(linePrefix, position, curLocation.path[2] as string);
+          }
+          
+          if (argCompletions) return argCompletions;
+          else return undefined;
 
-					return undefined;
+					// return undefined;
 				}
 			},
-		'$', '{'   // trigger intellisense/completion
+		// '$', '{', '"'   // trigger intellisense/completion
 	);
 
   context.subscriptions.push(keybindingCompletionProvider);
@@ -123,7 +132,7 @@ export async function makeSettingsCompletionProvider (context: ExtensionContext)
         return undefined;
       }
     },
-  '$', '{'   // trigger intellisense/completion
+  '$', '{', '"'   // trigger intellisense/completion
 );
 
 context.subscriptions.push(settingsCompletionProvider);
@@ -155,7 +164,7 @@ function _completeStringArgs(linePrefix: string, position: Position, option: str
 
 
 /**
- * Get completions for number options.  Only the special variables.
+ * Get completions for number options.
  * Check linePrefix for completion trigger characters.
  *
  * @param  linePrefix
@@ -165,13 +174,38 @@ function _completeStringArgs(linePrefix: string, position: Position, option: str
  */
 function _completeNumberArgs(linePrefix: string, position: Position, option: string): Array<CompletionItem> | undefined {
 
-  // ----------  startText/endText/subjects  -----------
-  if (option === 'lineLength' || option === 'gapLeft' || option === 'gapRight') {
+  // ----------  lineLength/gapLeft/gapRight  -----------
+  // if (option === 'lineLength' || option === 'gapLeft' || option === 'gapRight') {
+  if (option === 'gapLeft' || option === 'gapRight') {
     if (linePrefix.endsWith('${'))
       return [..._completeNumberVariables(position, "${")];
 
     else if (linePrefix.endsWith('$'))
       return [..._completeNumberVariables(position, "$")];
+  }
+  else return undefined;
+}
+
+/**
+ * Get completions for lineLength options.
+ * Check linePrefix for completion trigger characters.
+ *
+ * @param  linePrefix
+ * @param  position
+ * @param  option - lineLength
+ * @returns
+ */
+function _completeLineLengthArgs(linePrefix: string, position: Position, option: string): Array<CompletionItem> | undefined {
+
+  // ----------  lineLength  -----------
+  if (option === 'lineLength') {
+    if (linePrefix.endsWith('"'))
+      return [..._completeLineLengthVariables(position, "")];
+    else if (linePrefix.endsWith('${'))
+      return [..._completeLineLengthVariables(position, "${")];
+
+    else if (linePrefix.endsWith('$'))
+      return [..._completeLineLengthVariables(position, "$")];
   }
   else return undefined;
 }
@@ -323,6 +357,37 @@ function _completeNumberVariables(position: Position, trigger: string): Array<Co
   ];
 
 	return completionItems;
+}
+
+/**
+ * Make completion items for lineLength option
+ *
+ * @param   position
+ * @param   trigger - triggered by '$' so include its range
+ * @returns
+ */
+function _completeLineLengthVariables(position: Position, trigger: string): Array<CompletionItem> {
+
+  // triggered by 1 '$', so include it to complete w/o two '$${file}'
+  let replaceRange;
+
+  if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+  else replaceRange = new Range(position, position);
+
+  const completionItems = [
+    
+    _makeValueCompletionItem("minimum", replaceRange, "", "01", "To use the length of the longest line in each selection."),
+    _makeValueCompletionItem("minimum + nn", replaceRange, "", "02", "To use the length of the longest line in each selection + some number of pad characters (replace nn with a positive integer)."),
+
+    _makeValueCompletionItem("${selectedText}", replaceRange, "", "03", "The **first** selection in the current editor. Same as **${TM_SELECTED_TEXT}**."),
+    _makeValueCompletionItem("${TM_SELECTED_TEXT}", replaceRange, "", "04", "The **first** selection in the current editor. Same as **${selectedText}**."),
+
+    _makeValueCompletionItem("${CLIPBOARD}", replaceRange, "", "05", "The clipboard contents."),
+
+    _makeValueCompletionItem("${getInput}", replaceRange, "", "06", "Open an input dialog to get this text."),
+  ];
+
+  return completionItems;
 }
 
 /**

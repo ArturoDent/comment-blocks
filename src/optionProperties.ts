@@ -8,7 +8,7 @@
 export function getPrompts(caller: string): string {
 
   let prompts = {
-    lineLength: "Enter an integer for 'lineLength'",
+    lineLength: "Enter an integer for 'lineLength' or 'minimum' or 'minimum + nn'",
     startText: "Enter text for 'srartText'",
     endText: "Enter text for 'endText'",
     justify: "Enter text for 'justify'. Options: left, center or right",
@@ -32,7 +32,7 @@ export function getPrompts(caller: string): string {
 export function getPlaceHolders(caller: string): string {
 
   let placeHolders = {
-    lineLength: "Example: 80",
+    lineLength: "Example: 80 or 'minimum' or 'minimum + 5'",
     startText: "Example: //",
     endText: "Example: ''",
     justify: "Example: left",
