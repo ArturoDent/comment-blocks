@@ -2,7 +2,6 @@ import { env, Selection, TextEditor } from 'vscode';
 import type { CommentBlockSettings } from './types';
 import { resolveVariables } from './resolveVariables';
 
-
 /**
  * Build the comment blocks, resolving any variables.
  *
@@ -47,6 +46,7 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
   const specialVariable = new RegExp('\\$\\{.*\\}');  // look for '${...}' to resolve
   let subjects: string[] = [];
 
+  // resolve all variables
   for (let line = 0; line < numberOfLines; line++) {
 
     // loop through all options to resolveVariables on the line
@@ -55,18 +55,17 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
       if (option[0] === 'selectCurrentLine' || option[0] === 'keepIndentation') continue;
 
       else if (option[0] === 'subjects') {
-        if ((option as unknown as string[])[1][line].toString().search(specialVariable) !== -1) {
-          let resolved = await resolveVariables((option as unknown as string[])[1][line], selection, matchIndex, line, option[0]);
+        if (option[1][line].toString().search(specialVariable) !== -1) {
+          let resolved = await resolveVariables(option[1][line], selection, matchIndex, line, option[0]);
           subjects.push(resolved);
         }
-        else subjects.push((option as unknown as string[])[1][line]);
+        else subjects.push(option[1][line]);
       }
 
-      else if ((option as unknown as string[])[1][line].toString().search(specialVariable) !== -1) {  // typeof string
+      else if (option[1][line].toString().search(specialVariable) !== -1) {  // typeof string
 
-        var resolved = await resolveVariables((option as unknown as string[])[1][line], selection, matchIndex, line, option[0]);
-        // @ts-ignore
-        (options as unknown as string[])[option[0]][line] = resolved === undefined ? '' : resolved;
+        var resolved = await resolveVariables(option[1][line], selection, matchIndex, line, option[0]);
+        options[option[0]][line] = resolved === undefined ? '' : resolved;
       }
     };
   }
@@ -76,7 +75,8 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
   _equalizeSubjectLengths(options);
 
   let str = '';
-  const maxLineLength = await _getMaximumLineLength(editor, selection);
+  // const maxLineLength = await _getMaximumLineLength(editor, selection);
+  const maxLineLength = await _getMaximumLineLength(editor, subjects);
   let doTrimEnd = false;
   
   for (let line = 0; line < numberOfLines; line++) {
@@ -92,6 +92,7 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     let minimumMatch;
     
     if (typeof lineLength === 'string') minimumMatch = lineLength.match(reMinimum);
+
     if (minimumMatch && minimumMatch.groups?.offset) {
       const func = new Function('maxLineLength', 'minimumMatch', 'return maxLineLength + Number(minimumMatch.groups?.offset)');
       lineLength = func(maxLineLength, minimumMatch);
@@ -101,7 +102,7 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     }
     
     if (minimumMatch) {
-      lineLength += startText.length + endText.length;
+      lineLength += startText.length + endText.length + gapLeft + gapRight;
       doTrimEnd = true;
     }
     
@@ -114,9 +115,9 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
 
     // necessary because escaping out of a getInput delivers "", and you get a length from that?
     startText = startText || "";
-    endText = endText || "";
-    padLine = padLine || "";
-    justify = justify || "";
+    endText   = endText || "";
+    padLine   = padLine || "";
+    justify   = justify || "";
 
     let subject: string;
     if (doTrimEnd) subject = subjects[line].trimEnd();  // only if 'minimum'
@@ -155,25 +156,13 @@ export async function build(editor: TextEditor, options: CommentBlockSettings, s
     else if (justify === 'right') {
       padLeftLength = Math.ceil(lineLength - startText.length - gapLeft - subjectLength - gapRight - endText.length);
       padRightLength = 0;      // so ignored by justify RIGHT
-
-      if (minimumMatch && minimumMatch.groups?.offset) {
-        padLeftLength -= Number(minimumMatch.groups?.offset);
-        padRightLength += Number(minimumMatch.groups?.offset);
-      }
     }
 
     else  {  // if (justify === 'center' || justify === '')
       // to put the extra filler (if length is not an integer) before the gap, using ceil and floor
-      // TODO: unless 'minimumMatch' or minimum, how to modify for these?
 
       padLeftLength = Math.ceil(lineLength / 2 - subjectLength / 2 - gapLeft - startText.length);
       padRightLength = Math.floor(lineLength / 2 - subjectLength / 2 - gapRight - endText.length);
-      
-      // if (minimumMatch && minimumMatch.groups?.offset) {
-      //   // padLeftLength -= Number(minimumMatch.groups?.offset);
-      //   lineLength += Number(minimumMatch.groups?.offset);
-      //   padRightLength += Number(minimumMatch.groups?.offset);
-      // }
     }
 
     str += startText.padEnd(padLeftLength + startText.length, padLine || ' ')
@@ -302,20 +291,19 @@ async function _expandMultilines(editor: TextEditor, options: CommentBlockSettin
 
 
 /**
- * Get the length of the longest selected line
+ * Get the length of the longest subject line
  * @param splitText 
  * @returns 
  */
-async function _getMaximumLineLength(editor: TextEditor, selection: Selection): Promise<number> {
+async function _getMaximumLineLength(editor: TextEditor, subjects: string[]): Promise<number> {
   
-  let splitText;
-  let selectedText = editor.document.getText(selection);
+  let splitText: string | string[] = subjects;
   
-  if (selection.isSingleLine) {
-    splitText = selectedText.trimEnd();
+  if (subjects.length === 1) {
+    splitText = subjects[0].trimEnd();
     return splitText.length;
   }
-  else splitText = selectedText.split('\n');
+
   
   let maximum: number;
 
@@ -470,7 +458,8 @@ async function _setLengthAndFill(options: CommentBlockSettings, numberOfLines: n
       else newValue.fill(newValue[oldLength - 1], oldLength);
     }
 
-    (options as any)[option] = newValue;
+    // (options as any)[option] = newValue;
+    options[option] = newValue;
   }
 }
 
@@ -492,7 +481,7 @@ function _equalizeSubjectLengths(options: CommentBlockSettings): void {
   // don't loop over left/center/right if that option not used
   if ((options.justify as string[]).some(justifyOption => justifyOption === "left"))   justifies.push("left");
   if ((options.justify as string[]).some(justifyOption => justifyOption === "center")) justifies.push("center");
-  if ((options.justify as string[]).some(justifyOption => justifyOption === "right"))  justifies.push("right");
+  if ((options.justify as string[]).some(justifyOption => justifyOption === "right")) justifies.push("right");
 
   for (const justify of justifies) {
 

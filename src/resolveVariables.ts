@@ -18,7 +18,7 @@ type GroupNames = {   // move to types.ts ? Only used here
 };
 
 // this does not have to be cleared each time, ${default} always follows ${getInput}
-const getInputDefaults = {
+const getInputDefaults: Record<string, any> = {
   lineLength: "",
   startText: "",
   endText: "",
@@ -147,12 +147,14 @@ async function _resolveExtensionDefinedVariables (variableToResolve: string, cal
       else {
         resolved = '';
       }
-      getInputDefaults[caller as keyof typeof getInputDefaults] = resolved;
+      // getInputDefaults[caller as keyof typeof getInputDefaults] = resolved;
+      getInputDefaults[caller] = resolved;
       break;
 
     case "${default}": case "${ default }":
       // if expecting a number, parseInt somewhere
-      resolved = getInputDefaults[caller as keyof typeof getInputDefaults];
+      // resolved = getInputDefaults[caller as keyof typeof getInputDefaults];
+      resolved = getInputDefaults[caller];
       break;
 
     case "${nextSymbol}": case "${ nextSymbol }":

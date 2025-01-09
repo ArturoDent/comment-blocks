@@ -1,5 +1,6 @@
 // import { commands, window, ExtensionContext, Selection, Position, SnippetString, CancellationToken, languages, ProviderResult, TextDocument, MarkdownString, Range } from 'vscode';
 import { getSettings, getDefaults } from './configs';
+
 import { makeKeybindingsCompletionProvider, makeSettingsCompletionProvider } from './completions';
 import { build } from './blocks';
 import { getCommonLeadingWhiteSpace } from './whitespace';
@@ -10,7 +11,7 @@ import * as vscode from 'vscode';
 
 
 export async function activate(context: vscode.ExtensionContext) {
-
+  
   // can't use this here, something (Object.assign?) is globally changing the settings each run
   // let settings = await getSettings();
   await makeKeybindingsCompletionProvider(context);
@@ -37,7 +38,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     for await (let selection of editor.selections) {
 
-      let settings = await getSettings(document);
+      let settings: Record<string, any> = await getSettings(document);
 
       let { startText, endText } = settings;  // so from the 'defaults' setting
 
@@ -61,7 +62,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // set rest of defaults, if any options are undefined
       for (let [option, value] of Object.entries(defaults)) {
-        if ((settings[option as keyof typeof settings]) === undefined) (settings as any)[option] = value;
+        // if ((settings[option as keyof typeof settings]) === undefined) (settings as any)[option] = value;
+        if (settings[option] === undefined) settings[option] = value;
       }
 
       // args and settings combined with args having precedence

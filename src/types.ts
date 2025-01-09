@@ -15,5 +15,8 @@ export type CommentBlockSettings = {
   gapLeft: number | Array<number>,
   gapRight: number | Array<number>,
   padLines: string | Array<string>,
-  subjects: Array<string>
+  subjects: Array<string>,
+  
+  // [key: string]: boolean | number | string | Array<number> | Array<string> | undefined;
+  [key: string]: any;
 };

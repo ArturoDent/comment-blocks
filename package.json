@@ -1,7 +1,7 @@
 {
   "name": "comment-blocks",
   "displayName": "Comment Blocks",
-  "description": "Create blocks of comment headers",
+  "description": "Create custom blocks of comments",
   "publisher": "ArturoDent",
   "license": "MIT",
   "repository": {
@@ -11,7 +11,7 @@
   "funding": {
     "url": "https://www.buymeacoffee.com/ArturoDent"
   },
-  "version": "0.6.0",
+  "version": "0.7.0",
   "preview": true,
   "engines": {
     "vscode": "^1.46.0"
@@ -35,11 +35,14 @@
   ],
   "contributes": {
     "jsonValidation": [
+      
       {
+        "$comment": "these don't work for the Insiders Build",
         "fileMatch": "%APP_SETTINGS_HOME%/keybindings.json",
         "url": "./src/keybindings.schema.jsonc"
       },
       {
+        "$comment": "these don't work for the Insiders Build",
         "fileMatch": "%APP_SETTINGS_HOME%/profiles/*/keybindings.json",
         "url": "./src/keybindings.schema.jsonc"
       }

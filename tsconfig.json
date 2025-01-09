@@ -1,6 +1,8 @@
 {
 	"compilerOptions": {
 		"module": "CommonJS",
+		
+		"resolveJsonModule": true,
 
     // "moduleResolution": "Node16",
 		"target": "ESNext",
@@ -8,6 +10,7 @@
 		"lib": [
 			"ESNext"
 		],
+		"skipDefaultLibCheck": false,
 		"sourceMap": true,
 		"rootDir": "src",
 		// "strict": true,   /* enable all strict type-checking options */

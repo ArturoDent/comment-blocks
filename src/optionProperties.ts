@@ -7,7 +7,7 @@
  **/
 export function getPrompts(caller: string): string {
 
-  let prompts = {
+  let prompts: Record<string, any > = {
     lineLength: "Enter an integer for 'lineLength' or 'minimum' or 'minimum + nn'",
     startText: "Enter text for 'srartText'",
     endText: "Enter text for 'endText'",
@@ -18,7 +18,8 @@ export function getPrompts(caller: string): string {
     subjects: "Enter text for 'subjects'"
   };
 
-  return prompts[caller as keyof typeof prompts];
+  // return prompts[caller as keyof typeof prompts];
+  return prompts[caller];
 }
 
 
@@ -31,7 +32,7 @@ export function getPrompts(caller: string): string {
  **/
 export function getPlaceHolders(caller: string): string {
 
-  let placeHolders = {
+  let placeHolders: Record<string, any> = {
     lineLength: "Example: 80 or 'minimum' or 'minimum + 5'",
     startText: "Example: //",
     endText: "Example: ''",
@@ -42,5 +43,6 @@ export function getPlaceHolders(caller: string): string {
     subjects: "Example: ${selectedText}"
   };
 
-  return placeHolders[caller as keyof typeof placeHolders];
+  // return placeHolders[caller as keyof typeof placeHolders];
+  return placeHolders[caller];
 }

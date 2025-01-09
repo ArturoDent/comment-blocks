@@ -39,3 +39,15 @@
     //   padLeftLength = Math.ceil(lineLength / 2 - subjectLength / 2 - gapLeft - startText.length);
     //   padRightLength = Math.floor(lineLength / 2 - subjectLength / 2 - gapRight - endText.length);
     // }
+
+    C:\Users\markm\AppData\Roaming\Code\User\keybindings.json - Stable
+    C:\Users\markm\AppData\Roaming\Code - Insiders\User\keybindings.json - Insiders
+
+    APPDATA=C:\Users\markm\AppData\Roaming
+    
+    
+    Windows %APPDATA%\Code\User\settings.json
+    macOS $HOME/Library/Application\ Support/Code/User/settings.json
+    Linux $HOME/.config/Code/User/settings.json
+
+    fm = fm.replace(/%APP_SETTINGS_HOME%/, '/User');

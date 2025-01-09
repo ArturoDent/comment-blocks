@@ -122,9 +122,8 @@ There are many options and variables that can be used in creating these blocks.
 |keepIndentation  |boolean             |`true`                       |Keep the indentation of selected text     |
 |                 |                    |                             |&emsp;or cursor position on an empty line |
 |                 |                    |                             |                                          |
-|lineLength       |integer or integer[]|80                           |Each line can be a different length       |
+|lineLength       |integer or integer[]|80                           |Each line can be a different length - use an array      |
 |                 |string              |                             |"minimum" or "minimum + nn" ( 2-digit integer) |
-|                 |                    |                             |"minimum' only works with justify:left   |
 |                 |                    |                             |                                          |
 |startText        |string or string[]  |`${BLOCK_COMMENT_START}`     |Text at the beginning of each line        |
 |endText          |string or string[]  |`${BLOCK_COMMENT_END}`       |Text at the end of each line *            |
@@ -285,6 +284,8 @@ If the clipBoard or the selected text contains `${relativeFile} ${fileBasename} 
 
 ### Case Transforms
 
+These case transorms, like `\\S`, can be used for the string options: `subjects`, `startText` and `endText`.  
+
 <div style="border: 1px solid; border-radius: 4px; width:fit-content;">
 
 | Transform | Meaning               | Result      | Usage                |
@@ -351,7 +352,7 @@ and then a keybinding like:
   "key": "alt+b",
   "command": "comment-blocks.createBlock",
   "args": {
-    "justify": "center"   // to override the default value of "right" above
+    "justify": "center"   // to override the default value of "right" created above
     
     // anything else you wanted to change from the default
   }
@@ -687,7 +688,7 @@ or
   "command": "comment-blocks.createBlock",
   "args": {
       "lineLength": "minimum+3",
-      "justify": "left",            // minimum... only works with justify:left currwntly
+      "justify": "left",
       "startText": ["${BLOCK_COMMENT_START}", "* ", "**"],
       "endText": ["*","*", "${BLOCK_COMMENT_END}"],
       "subjects": [
@@ -714,7 +715,7 @@ produces
 ********************************/
 ```
 
-The above keybinding uses `"lineLength": "minimum+3",`.  This means that a `lineLength` will be taken as the longest line of the selection.  And the `3` will be added to that.  You can add any integer to the mimimum or just use `"minimum"` to have no space added after the longest line like this:
+The above keybinding uses `"lineLength": "minimum+3",`.  This means that a `lineLength` will be taken as the longest line of the selection.  And the `3` will be added to that.  And any `gapLeft` or `gapRight` will be added and the length of `startText` and `endText`.  You can add any integer to the mimimum or just use `"minimum"` to have no space added after the longest line like this:
 
 ```javascript
 /***************************
@@ -1075,7 +1076,6 @@ Using `${LINE_COMMENT}` in other places will result in errors.
 * Check `defaults` for bad values?
 * Improve undefined `subjects` handling.
 * Enable case modifying of `${CLIPBOARD}` or `${selectedText}` with included variables.
-* Support pascalCase, camelCase, titleCase, kebabCase and snakeCase (with \\\\P, \\\\C, \\\\T, \\\\K, \\\\S).
 * Handle content that exceeds the `lineLength`.
 * Consider moving `${getInput}` and `${default}` up to `getSpecialVariables()`.  
 * Investigate removing line or block comments from `${CLIPBOARD}`.  Remove block comments from `${selectedText}`  
@@ -1090,7 +1090,7 @@ Using `${LINE_COMMENT}` in other places will result in errors.
 
 0.4.0 Remove line comments from all selected lines.  
 &emsp;&emsp; Fixed keybinding variable completions.  
-&emsp;&emsp; Comment configurations are a global variable and stored.
+&emsp;&emsp; Comment configurations are a global variable and stored.  
 &emsp;&emsp; Added pascalCase, camelCase, titleCase, (screaming) kebabCase and (screaming) snakeCases.  
 &emsp;&emsp; Remove line comments for all selected text.  
 &emsp;&emsp; Added caseTransforms.md.  
@@ -1103,3 +1103,5 @@ Using `${LINE_COMMENT}` in other places will result in errors.
 &emsp;&emsp; Removed SnippetString support - doesn't work with multiple selections.  
 
 0.7.0 Added a `lineLength` option of minimum.  
+&emsp;&emsp; Make `minimum` work with justify left, right and center.  
+&emsp;&emsp; Added support for pascalCase, camelCase, titleCase, kebabCase and snakeCase completion suggestions.  

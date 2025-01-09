@@ -2,9 +2,8 @@ import {
   ExtensionContext, languages, Range, Position,
   CompletionItem, CompletionItemKind, MarkdownString
 } from 'vscode';
-// import * as langConfigs from './getLanguageConfig';
 
-import { Node, parseTree, getLocation, getNodeValue } from 'jsonc-parser';  // for the language-specific comment characters
+import { Node, parseTree, getLocation, getNodeValue, Segment } from 'jsonc-parser';
 
 
 /**
@@ -13,10 +12,11 @@ import { Node, parseTree, getLocation, getNodeValue } from 'jsonc-parser';  // f
  */
 export async function makeKeybindingsCompletionProvider (context: ExtensionContext) {
     const keybindingCompletionProvider = languages.registerCompletionItemProvider (
-      { pattern: '**/keybindings.json' },  // TODO: add scheme
+      { pattern: '**/keybindings.json' },  // TODO: add scheme?
       {
         provideCompletionItems(document, position) {
 
+          // '          "\\'
           const linePrefix = document.lineAt(position).text.substring(0, position.character);
 
           let curLocation;
@@ -27,7 +27,7 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
             curLocation = getLocation(document.getText(), document.offsetAt(position));
           }
           catch (error) {
-            // console.log(error)
+            console.log(error);
           }
 
           if (!curLocation || curLocation.isAtPropertyKey) return undefined;
@@ -49,32 +49,28 @@ export async function makeKeybindingsCompletionProvider (context: ExtensionConte
           if (curLocation?.previousNode && linePrefix.endsWith(`"${ curLocation.previousNode.value }"`)) return undefined;
 
           const stringProps = ["startText", "endText", "subjects"];
-          // const numbersProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
           const numbersProps = ["gapLeft", "gapRight"];  // these get number variable completions
           const lineLengthProp = ["lineLength"];
           let argCompletions: Array<CompletionItem> | undefined;
+          
+          const prop = curLocation.path[2] as Segment as string;
 
-          if (stringProps.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
-            argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[2] as string);
-            // if (argCompletions) return argCompletions;
-            // else return undefined;
+          if (stringProps.includes(prop) && !curLocation.isAtPropertyKey) {
+            argCompletions = _completeStringArgs(linePrefix, position, prop);
           }
-          else if (numbersProps.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
-            argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[2] as string);
-            // if (argCompletions) return argCompletions;
-            // else return undefined;
+          else if (numbersProps.includes(prop) && !curLocation.isAtPropertyKey) {
+            argCompletions = _completeNumberArgs(linePrefix, position, prop);
           }
-          else if (lineLengthProp.includes(curLocation.path[2] as string) && !curLocation.isAtPropertyKey) {
-            argCompletions = _completeLineLengthArgs(linePrefix, position, curLocation.path[2] as string);
+          else if (lineLengthProp.includes(prop) && !curLocation.isAtPropertyKey) {
+            argCompletions = _completeLineLengthArgs(linePrefix, position, prop);
           }
           
           if (argCompletions) return argCompletions;
           else return undefined;
-
-					// return undefined;
 				}
 			},
 		// '$', '{', '"'   // trigger intellisense/completion
+		'$', '{', '"', '\\'   // trigger intellisense/completion
 	);
 
   context.subscriptions.push(keybindingCompletionProvider);
@@ -118,14 +114,16 @@ export async function makeSettingsCompletionProvider (context: ExtensionContext)
 
         const stringProps = ["startText", "endText", "subjects"];  // these get string variable completions
         const numberProps = ["lineLength", "gapLeft", "gapRight"];  // these get number variable completions
+        
+        const prop = curLocation.path[1] as Segment as string;
 
-        if (stringProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {
-          const argCompletions = _completeStringArgs(linePrefix, position, curLocation.path[1] as string);
+        if (stringProps.includes(prop) && !curLocation.isAtPropertyKey) {
+          const argCompletions = _completeStringArgs(linePrefix, position, prop);
           if (argCompletions) return argCompletions;
           else return undefined;
         }
-        else if (numberProps.includes(curLocation.path[1] as string) && !curLocation.isAtPropertyKey) {
-          const argCompletions = _completeNumberArgs(linePrefix, position, curLocation.path[1] as string);
+        else if (numberProps.includes(prop) && !curLocation.isAtPropertyKey) {
+          const argCompletions = _completeNumberArgs(linePrefix, position, prop);
           if (argCompletions) return argCompletions;
           else return undefined;
         }
@@ -158,6 +156,12 @@ function _completeStringArgs(linePrefix: string, position: Position, option: str
 
     else if (linePrefix.endsWith('$'))
       return [..._completeVariables(position, "$")];
+
+    else if (linePrefix.endsWith('\\\\'))   // this must be before the next '\\'
+      return [..._completeCaseModifiers(position, "\\\\")];
+      
+    else if (linePrefix.endsWith('\\'))
+      return [..._completeCaseModifiers(position, "\\")];
   }
   else return undefined;
 }
@@ -229,10 +233,10 @@ function _findConfig(rootNode: Node, offset: number): Node | undefined  {
 }
 
 /**
- * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
+ * Make completion items for 'startText,endText,subjects' values starting with a '$' sign
  *
  * @param  position
- * @param  trigger - triggered by '$' so include its range
+ * @param  trigger - triggered by '$' or '${' so include its range
  * @returns
  */
 function _completeVariables(position: Position, trigger: string): Array<CompletionItem> {
@@ -328,6 +332,44 @@ function _completeVariables(position: Position, trigger: string): Array<Completi
   ];
 
 	return completionItems;
+}
+
+/**
+ * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
+ *
+ * @param  position
+ * @param  trigger - triggered by '$' so include its range
+ * @returns
+ */
+function _completeCaseModifiers(position: Position, trigger: string): Array<CompletionItem> {
+
+  // triggered by 1 '$', so include it to complete w/o two '$${file}'
+  let replaceRange;
+
+  if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+  else replaceRange = new Range(position, position);
+  
+  // if (!global.comments && window.activeTextEditor) global.comments = await langConfigs.get(window.activeTextEditor?.document.languageId, 'comments');
+
+  const completionItems = [
+    _makeValueCompletionItem("\\\\U", replaceRange, "", "01", "Uppercase all following text."),
+    _makeValueCompletionItem("\\\\u", replaceRange, "", "011", "Capitalize first letter only."),
+
+    _makeValueCompletionItem("\\\\L", replaceRange, "", "02", "Lowercase all following text."),
+    _makeValueCompletionItem("\\\\l", replaceRange, "", "02", "Lowercase first letter only."),
+
+    _makeValueCompletionItem("\\\\P", replaceRange, "", "03", "PascalCase"),
+    _makeValueCompletionItem("\\\\C", replaceRange, "", "04", "camelCase"),
+    _makeValueCompletionItem("\\\\T", replaceRange, "", "05", "TitleCase"),
+
+    _makeValueCompletionItem("\\\\S", replaceRange, "", "06", "SCREAMING_SNAKE_CASE."),
+    _makeValueCompletionItem("\\\\s", replaceRange, "", "061", "snake_case"),
+
+    _makeValueCompletionItem("\\\\K", replaceRange, "", "07", "SCREAMING-KEBAB-CASE"),
+    _makeValueCompletionItem("\\\\k", replaceRange, "", "071", "kebab-case"),
+  ];
+
+  return completionItems;
 }
 
 
